@@ -94,21 +94,38 @@ export default function App() {
   const [xp, setXp] = useState(gameData.xp || 0);
   const [combo, setCombo] = useState(gameData.combo || 0);
 
-  // ADD TJOS HERE
-  const [level, setLevel] = useState(1);
-  // 2. clear save function (removes localStorage + resets app)
+  const [level, setLevel] = useState(gameData.level || 1);
+  const [gameData] = useState(() => loadGame() || {});
+
+  // ADD THIS HERE
   const clearSave = () => {
-    localStorage.removeItem("teen_game");
-    restart();
-  };
+  localStorage.removeItem("teen_game");
+
+  setState("menu");
+  setPool([]);
+  setCurrent(null);
+  setScore(0);
+  setXp(0);
+  setCombo(0);
+  setBossHP(100);
+  setPlayerHP(100);
+};
+  
 
   const [bossHP, setBossHP] = useState(100);
   const [playerHP, setPlayerHP] = useState(100);
 
-  // ADD THIS RIGHT HERE
+
   useEffect(() => {
-    saveGame({ score, xp, combo });
-  }, [score, xp, combo]);
+  saveGame({
+    state,
+    score,
+    xp,
+    combo,
+    bossHP,
+    playerHP
+  });
+}, [state, score, xp, combo, bossHP, playerHP]);
 
   /* START GAME */
   const startGame = () => {
