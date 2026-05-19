@@ -37,7 +37,7 @@ const questions = [
 ];
 
 /* =========================
-   🔊 SOUND SYSTEM (FIXED)
+   🔊 SOUND + STORAGE
 ========================= */
 const saveGame = (data) => {
   localStorage.setItem("teen_game", JSON.stringify(data));
@@ -59,21 +59,17 @@ const playSound = (file) => {
       soundCache[file] = new Audio(`/sounds/${file}`);
       soundCache[file].volume = 0.5;
     }
-
     const audio = soundCache[file];
     audio.currentTime = 0;
     audio.play().catch(() => {});
-  } catch (e) {}
+  } catch {}
 };
 
 /* =========================
-   🎲 SHUFFLE
+   🎲 UTILITIES
 ========================= */
 const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
 
-/* =========================
-   ⚡ XP SYSTEM
-========================= */
 const getXP = (difficulty) => {
   if (difficulty === "easy") return 10;
   if (difficulty === "medium") return 20;
@@ -87,47 +83,49 @@ export default function App() {
   const [state, setState] = useState("menu");
   const [pool, setPool] = useState([]);
   const [current, setCurrent] = useState(null);
-  
+
   const [gameData] = useState(() => loadGame() || {});
 
   const [score, setScore] = useState(gameData.score || 0);
   const [xp, setXp] = useState(gameData.xp || 0);
   const [combo, setCombo] = useState(gameData.combo || 0);
 
-  const [level, setLevel] = useState(gameData.level || 1);
-  const [gameData] = useState(() => loadGame() || {});
+  const [bossHP, setBossHP] = useState(gameData.bossHP || 100);
+  const [playerHP, setPlayerHP] = useState(gameData.playerHP || 100);
 
-  // ADD THIS HERE
-  const clearSave = () => {
-  localStorage.removeItem("teen_game");
-
-  setState("menu");
-  setPool([]);
-  setCurrent(null);
-  setScore(0);
-  setXp(0);
-  setCombo(0);
-  setBossHP(100);
-  setPlayerHP(100);
-};
-  
-
-  const [bossHP, setBossHP] = useState(100);
-  const [playerHP, setPlayerHP] = useState(100);
-
-
+  /* =========================
+     💾 AUTO SAVE
+  ========================= */
   useEffect(() => {
-  saveGame({
-    state,
-    score,
-    xp,
-    combo,
-    bossHP,
-    playerHP
-  });
-}, [state, score, xp, combo, bossHP, playerHP]);
+    saveGame({
+      state,
+      score,
+      xp,
+      combo,
+      bossHP,
+      playerHP,
+    });
+  }, [state, score, xp, combo, bossHP, playerHP]);
 
-  /* START GAME */
+  /* =========================
+     🧹 RESET SAVE
+  ========================= */
+  const clearSave = () => {
+    localStorage.removeItem("teen_game");
+
+    setState("menu");
+    setPool([]);
+    setCurrent(null);
+    setScore(0);
+    setXp(0);
+    setCombo(0);
+    setBossHP(100);
+    setPlayerHP(100);
+  };
+
+  /* =========================
+     ▶ START GAME
+  ========================= */
   const startGame = () => {
     const shuffled = shuffle(questions);
     setPool(shuffled);
@@ -135,7 +133,9 @@ export default function App() {
     setState("game");
   };
 
-  /* ANSWER SYSTEM */
+  /* =========================
+     🎯 ANSWER SYSTEM
+  ========================= */
   const answer = (correct) => {
     if (!current) return;
 
@@ -167,7 +167,9 @@ export default function App() {
     }, 250);
   };
 
-  /* BOSS FIGHT */
+  /* =========================
+     👾 BOSS FIGHT
+  ========================= */
   const attackBoss = () => {
     playSound("boss.mp3");
 
@@ -190,7 +192,9 @@ export default function App() {
     }
   };
 
-  /* RESET */
+  /* =========================
+     🔄 RESTART GAME
+  ========================= */
   const restart = () => {
     playSound("correct.mp3");
 
@@ -204,17 +208,13 @@ export default function App() {
     setPlayerHP(100);
   };
 
+  /* =========================
+     🎨 UI
+  ========================= */
   return (
-    <div style={{
-    padding: 12,
-    fontFamily: "Arial",
-    maxWidth: 600,
-    margin: "0 auto"
-    }}
-    >
-      <button onClick={clearSave}>
-        Reset Save
-      </button>
+    <div style={{ padding: 12, fontFamily: "Arial", maxWidth: 600, margin: "0 auto" }}>
+
+      <button onClick={clearSave}>Reset Save</button>
 
       {/* MENU */}
       {state === "menu" && (
@@ -273,9 +273,7 @@ export default function App() {
       {state === "win" && (
         <div style={styles.center}>
           <h1>🏆 YOU WIN</h1>
-          <button style={styles.btn} onClick={restart}>
-            PLAY AGAIN
-          </button>
+          <button style={styles.btn} onClick={restart}>PLAY AGAIN</button>
         </div>
       )}
 
@@ -283,9 +281,7 @@ export default function App() {
       {state === "lose" && (
         <div style={styles.center}>
           <h1>💀 YOU LOSE</h1>
-          <button style={styles.btn} onClick={restart}>
-            TRY AGAIN
-          </button>
+          <button style={styles.btn} onClick={restart}>TRY AGAIN</button>
         </div>
       )}
     </div>
@@ -293,28 +289,10 @@ export default function App() {
 }
 
 /* =========================
-   📱 MOBILE GAME STYLES
+   🎨 STYLES
 ========================= */
 const styles = {
-  bg: {
-    fontFamily: "Arial",
-    background: "#0b1020",
-    minHeight: "100vh",
-    color: "white",
-
-    maxWidth: 420,
-    margin: "0 auto",
-    padding: 12,
-
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  center: {
-    width: "100%",
-    textAlign: "center",
-  },
+  center: { textAlign: "center", width: "100%" },
 
   hud: {
     display: "flex",
@@ -326,7 +304,6 @@ const styles = {
     background: "#1f2937",
     padding: 18,
     borderRadius: 16,
-    boxShadow: "0 10px 25px rgba(0,0,0,0.4)",
   },
 
   answer: {
@@ -348,9 +325,8 @@ const styles = {
     background: "#22c55e",
     border: "none",
     borderRadius: 12,
-    color: "black",
-    fontWeight: "bold",
     fontSize: 16,
+    fontWeight: "bold",
   },
 
   bar: {
