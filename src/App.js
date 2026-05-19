@@ -37,7 +37,7 @@ const questions = [
 ];
 
 /* =========================
-   🔊 SOUND + STORAGE
+   🔊 STORAGE + SOUND
 ========================= */
 const saveGame = (data) => {
   localStorage.setItem("teen_game", JSON.stringify(data));
@@ -52,7 +52,6 @@ const loadGame = () => {
 };
 
 const soundCache = {};
-
 const playSound = (file) => {
   try {
     if (!soundCache[file]) {
@@ -77,7 +76,7 @@ const getXP = (difficulty) => {
 };
 
 /* =========================
-   🎮 APP
+   🎮 APP (CLEAN STRUCTURE)
 ========================= */
 export default function App() {
   const [state, setState] = useState("menu");
@@ -90,21 +89,14 @@ export default function App() {
   const [xp, setXp] = useState(gameData.xp || 0);
   const [combo, setCombo] = useState(gameData.combo || 0);
 
-  const [bossHP, setBossHP] = useState(gameData.bossHP || 100);
-  const [playerHP, setPlayerHP] = useState(gameData.playerHP || 100);
+  const [bossHP, setBossHP] = useState(100);
+  const [playerHP, setPlayerHP] = useState(100);
 
   /* =========================
      💾 AUTO SAVE
   ========================= */
   useEffect(() => {
-    saveGame({
-      state,
-      score,
-      xp,
-      combo,
-      bossHP,
-      playerHP,
-    });
+    saveGame({ state, score, xp, combo, bossHP, playerHP });
   }, [state, score, xp, combo, bossHP, playerHP]);
 
   /* =========================
@@ -112,7 +104,6 @@ export default function App() {
   ========================= */
   const clearSave = () => {
     localStorage.removeItem("teen_game");
-
     setState("menu");
     setPool([]);
     setCurrent(null);
@@ -193,7 +184,7 @@ export default function App() {
   };
 
   /* =========================
-     🔄 RESTART GAME
+     🔄 RESTART
   ========================= */
   const restart = () => {
     playSound("correct.mp3");
@@ -211,75 +202,75 @@ export default function App() {
   /* =========================
      🎨 UI
   ========================= */
-return (
-  <div style={styles.app}>
-    <button onClick={clearSave} style={styles.resetBtn}>
-      Reset
-    </button>
+  return (
+    <div style={styles.app}>
+      <button onClick={clearSave} style={styles.resetBtn}>
+        Reset
+      </button>
 
-    {/* MENU */}
-    {state === "menu" && (
-      <div style={styles.center}>
-        <h1 style={styles.title}>⚡ QUIZ BATTLE</h1>
-        <p style={styles.subtitle}>Offline Mobile Game</p>
+      {/* MENU */}
+      {state === "menu" && (
+        <div style={styles.center}>
+          <h1 style={styles.title}>⚡ QUIZ BATTLE</h1>
+          <p style={styles.subtitle}>Offline Mobile Game</p>
 
-        <button style={styles.primaryBtn} onClick={startGame}>
-          START GAME
-        </button>
-      </div>
-    )}
-
-    {/* GAME */}
-    {state === "game" && current && (
-      <div style={styles.center}>
-        <div style={styles.hud}>
-          <div>⭐ {score}</div>
-          <div>🔥 {combo}</div>
-          <div>⚡ {xp}</div>
+          <button style={styles.primaryBtn} onClick={startGame}>
+            START GAME
+          </button>
         </div>
+      )}
 
-        <div style={styles.card}>
-          <h2 style={styles.question}>{current.question}</h2>
+      {/* GAME */}
+      {state === "game" && current && (
+        <div style={styles.center}>
+          <div style={styles.hud}>
+            <div>⭐ {score}</div>
+            <div>🔥 {combo}</div>
+            <div>⚡ {xp}</div>
+          </div>
 
-          {current.answers.map((a, i) => (
-            <button
-              key={i}
-              style={styles.answerBtn}
-              onClick={() => answer(a.correct)}
-            >
-              {a.text}
-            </button>
-          ))}
+          <div style={styles.card}>
+            <h2 style={styles.question}>{current.question}</h2>
+
+            {current.answers.map((a, i) => (
+              <button
+                key={i}
+                style={styles.answerBtn}
+                onClick={() => answer(a.correct)}
+              >
+                {a.text}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
-    )}
+      )}
 
-    {/* BOSS */}
-    {state === "boss" && (
-      <div style={styles.center}>
-        <h1>👾 BOSS</h1>
+      {/* BOSS */}
+      {state === "boss" && (
+        <div style={styles.center}>
+          <h1>👾 BOSS</h1>
 
-        <div style={styles.bar}>
-          <div style={{ ...styles.hp, width: `${bossHP}%` }} />
+          <div style={styles.bar}>
+            <div style={{ ...styles.hp, width: `${bossHP}%` }} />
+          </div>
+
+          <button style={styles.primaryBtn} onClick={attackBoss}>
+            ATTACK
+          </button>
         </div>
+      )}
 
-        <button style={styles.primaryBtn} onClick={attackBoss}>
-          ATTACK
-        </button>
-      </div>
-    )}
-
-    {/* WIN/LOSE */}
-    {(state === "win" || state === "lose") && (
-      <div style={styles.center}>
-        <h1>{state === "win" ? "🏆 YOU WIN" : "💀 YOU LOSE"}</h1>
-        <button style={styles.primaryBtn} onClick={restart}>
-          PLAY AGAIN
-        </button>
-      </div>
-    )}
-  </div>
-);
+      {/* WIN / LOSE */}
+      {(state === "win" || state === "lose") && (
+        <div style={styles.center}>
+          <h1>{state === "win" ? "🏆 YOU WIN" : "💀 YOU LOSE"}</h1>
+          <button style={styles.primaryBtn} onClick={restart}>
+            PLAY AGAIN
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }
 
 /* =========================
@@ -294,24 +285,17 @@ const styles = {
     padding: "16px",
     display: "flex",
     flexDirection: "column",
-    alignItems: "center"
+    alignItems: "center",
   },
 
   center: {
     width: "100%",
     maxWidth: 420,
-    textAlign: "center"
+    textAlign: "center",
   },
 
-  title: {
-    fontSize: 28,
-    marginBottom: 6
-  },
-
-  subtitle: {
-    opacity: 0.7,
-    marginBottom: 20
-  },
+  title: { fontSize: 28, marginBottom: 6 },
+  subtitle: { opacity: 0.7, marginBottom: 20 },
 
   hud: {
     display: "flex",
@@ -319,19 +303,19 @@ const styles = {
     padding: "10px 14px",
     background: "#1f2937",
     borderRadius: 12,
-    marginBottom: 15
+    marginBottom: 15,
   },
 
   card: {
     background: "#1f2937",
     padding: 20,
     borderRadius: 18,
-    boxShadow: "0 10px 30px rgba(0,0,0,0.4)"
+    boxShadow: "0 10px 30px rgba(0,0,0,0.4)",
   },
 
   question: {
     fontSize: 18,
-    marginBottom: 16
+    marginBottom: 16,
   },
 
   answerBtn: {
@@ -343,7 +327,7 @@ const styles = {
     border: "none",
     fontSize: 16,
     background: "#374151",
-    color: "white"
+    color: "white",
   },
 
   primaryBtn: {
@@ -355,7 +339,7 @@ const styles = {
     fontSize: 16,
     fontWeight: "bold",
     background: "#22c55e",
-    color: "black"
+    color: "black",
   },
 
   resetBtn: {
@@ -367,7 +351,7 @@ const styles = {
     borderRadius: 8,
     border: "none",
     background: "#ef4444",
-    color: "white"
+    color: "white",
   },
 
   bar: {
@@ -376,12 +360,12 @@ const styles = {
     background: "#333",
     borderRadius: 10,
     overflow: "hidden",
-    margin: "10px 0"
+    margin: "10px 0",
   },
 
   hp: {
     height: "100%",
     background: "red",
-    transition: "0.3s"
-  }
+    transition: "0.3s",
+  },
 };
