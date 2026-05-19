@@ -188,8 +188,13 @@ export default function App() {
   };
 
   return (
-    <div style={styles.bg}>
-
+    <div style={{
+    padding: 12,
+    fontFamily: "Arial",
+    maxWidth: 600,
+    margin: "0 auto"
+    }}
+    >
       <button onClick={clearSave}>
         Reset Save
       </button>
