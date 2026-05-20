@@ -37,7 +37,7 @@ const questions = [
 ];
 
 /* =========================
-   🔊 SOUND SYSTEM (FIXED)
+   🔊 STORAGE + SOUND
 ========================= */
 const saveGame = (data) => {
   localStorage.setItem("teen_game", JSON.stringify(data));
@@ -52,28 +52,23 @@ const loadGame = () => {
 };
 
 const soundCache = {};
-
 const playSound = (file) => {
   try {
     if (!soundCache[file]) {
       soundCache[file] = new Audio(`/sounds/${file}`);
       soundCache[file].volume = 0.5;
     }
-
     const audio = soundCache[file];
     audio.currentTime = 0;
     audio.play().catch(() => {});
-  } catch (e) {}
+  } catch {}
 };
 
 /* =========================
-   🎲 SHUFFLE
+   🎲 UTILITIES
 ========================= */
 const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
 
-/* =========================
-   ⚡ XP SYSTEM
-========================= */
 const getXP = (difficulty) => {
   if (difficulty === "easy") return 10;
   if (difficulty === "medium") return 20;
@@ -81,36 +76,47 @@ const getXP = (difficulty) => {
 };
 
 /* =========================
-   🎮 APP
+   🎮 APP (CLEAN STRUCTURE)
 ========================= */
 export default function App() {
   const [state, setState] = useState("menu");
   const [pool, setPool] = useState([]);
   const [current, setCurrent] = useState(null);
-  
+
   const [gameData] = useState(() => loadGame() || {});
 
   const [score, setScore] = useState(gameData.score || 0);
   const [xp, setXp] = useState(gameData.xp || 0);
   const [combo, setCombo] = useState(gameData.combo || 0);
 
-  // ADD TJOS HERE
-  const [level, setLevel] = useState(1);
-  // 2. clear save function (removes localStorage + resets app)
-  const clearSave = () => {
-    localStorage.removeItem("teen_game");
-    restart();
-  };
-
   const [bossHP, setBossHP] = useState(100);
   const [playerHP, setPlayerHP] = useState(100);
 
-  // ADD THIS RIGHT HERE
+  /* =========================
+     💾 AUTO SAVE
+  ========================= */
   useEffect(() => {
-    saveGame({ score, xp, combo });
-  }, [score, xp, combo]);
+    saveGame({ state, score, xp, combo, bossHP, playerHP });
+  }, [state, score, xp, combo, bossHP, playerHP]);
 
-  /* START GAME */
+  /* =========================
+     🧹 RESET SAVE
+  ========================= */
+  const clearSave = () => {
+    localStorage.removeItem("teen_game");
+    setState("menu");
+    setPool([]);
+    setCurrent(null);
+    setScore(0);
+    setXp(0);
+    setCombo(0);
+    setBossHP(100);
+    setPlayerHP(100);
+  };
+
+  /* =========================
+     ▶ START GAME
+  ========================= */
   const startGame = () => {
     const shuffled = shuffle(questions);
     setPool(shuffled);
@@ -118,7 +124,9 @@ export default function App() {
     setState("game");
   };
 
-  /* ANSWER SYSTEM */
+  /* =========================
+     🎯 ANSWER SYSTEM
+  ========================= */
   const answer = (correct) => {
     if (!current) return;
 
@@ -150,7 +158,9 @@ export default function App() {
     }, 250);
   };
 
-  /* BOSS FIGHT */
+  /* =========================
+     👾 BOSS FIGHT
+  ========================= */
   const attackBoss = () => {
     playSound("boss.mp3");
 
@@ -173,7 +183,9 @@ export default function App() {
     }
   };
 
-  /* RESET */
+  /* =========================
+     🔄 RESTART
+  ========================= */
   const restart = () => {
     playSound("correct.mp3");
 
@@ -187,18 +199,22 @@ export default function App() {
     setPlayerHP(100);
   };
 
+  /* =========================
+     🎨 UI
+  ========================= */
   return (
-    <div style={styles.bg}>
-
-      <button onClick={clearSave}>
-        Reset Save
+    <div style={styles.app}>
+      <button onClick={clearSave} style={styles.resetBtn}>
+        Reset
       </button>
 
       {/* MENU */}
       {state === "menu" && (
         <div style={styles.center}>
-          <h1>⚡ QUIZ BATTLE</h1>
-          <button style={styles.btn} onClick={startGame}>
+          <h1 style={styles.title}>⚡ QUIZ BATTLE</h1>
+          <p style={styles.subtitle}>Offline Mobile Game</p>
+
+          <button style={styles.primaryBtn} onClick={startGame}>
             START GAME
           </button>
         </div>
@@ -214,12 +230,12 @@ export default function App() {
           </div>
 
           <div style={styles.card}>
-            <h2>{current.question}</h2>
+            <h2 style={styles.question}>{current.question}</h2>
 
             {current.answers.map((a, i) => (
               <button
                 key={i}
-                style={styles.answer}
+                style={styles.answerBtn}
                 onClick={() => answer(a.correct)}
               >
                 {a.text}
@@ -232,37 +248,24 @@ export default function App() {
       {/* BOSS */}
       {state === "boss" && (
         <div style={styles.center}>
-          <h1>👾 BOSS FIGHT</h1>
+          <h1>👾 BOSS</h1>
 
           <div style={styles.bar}>
             <div style={{ ...styles.hp, width: `${bossHP}%` }} />
           </div>
 
-          <p>Boss HP: {bossHP}</p>
-          <p>Player HP: {playerHP}</p>
-
-          <button style={styles.btn} onClick={attackBoss}>
-            ⚔️ ATTACK
+          <button style={styles.primaryBtn} onClick={attackBoss}>
+            ATTACK
           </button>
         </div>
       )}
 
-      {/* WIN */}
-      {state === "win" && (
+      {/* WIN / LOSE */}
+      {(state === "win" || state === "lose") && (
         <div style={styles.center}>
-          <h1>🏆 YOU WIN</h1>
-          <button style={styles.btn} onClick={restart}>
+          <h1>{state === "win" ? "🏆 YOU WIN" : "💀 YOU LOSE"}</h1>
+          <button style={styles.primaryBtn} onClick={restart}>
             PLAY AGAIN
-          </button>
-        </div>
-      )}
-
-      {/* LOSE */}
-      {state === "lose" && (
-        <div style={styles.center}>
-          <h1>💀 YOU LOSE</h1>
-          <button style={styles.btn} onClick={restart}>
-            TRY AGAIN
           </button>
         </div>
       )}
@@ -271,73 +274,93 @@ export default function App() {
 }
 
 /* =========================
-   📱 MOBILE GAME STYLES
+   🎨 STYLES
 ========================= */
 const styles = {
-  bg: {
-    fontFamily: "Arial",
-    background: "#0b1020",
+  app: {
     minHeight: "100vh",
+    background: "linear-gradient(180deg, #0b1020, #111827)",
     color: "white",
-
-    maxWidth: 420,
-    margin: "0 auto",
-    padding: 12,
-
+    fontFamily: "system-ui, Arial",
+    padding: "16px",
     display: "flex",
-    justifyContent: "center",
+    flexDirection: "column",
     alignItems: "center",
   },
 
   center: {
     width: "100%",
+    maxWidth: 420,
     textAlign: "center",
   },
 
+  title: { fontSize: 28, marginBottom: 6 },
+  subtitle: { opacity: 0.7, marginBottom: 20 },
+
   hud: {
     display: "flex",
-    justifyContent: "space-around",
+    justifyContent: "space-between",
+    padding: "10px 14px",
+    background: "#1f2937",
+    borderRadius: 12,
     marginBottom: 15,
   },
 
   card: {
     background: "#1f2937",
-    padding: 18,
-    borderRadius: 16,
-    boxShadow: "0 10px 25px rgba(0,0,0,0.4)",
+    padding: 20,
+    borderRadius: 18,
+    boxShadow: "0 10px 30px rgba(0,0,0,0.4)",
   },
 
-  answer: {
+  question: {
+    fontSize: 18,
+    marginBottom: 16,
+  },
+
+  answerBtn: {
     display: "block",
-    margin: "10px auto",
+    width: "100%",
+    margin: "10px 0",
     padding: 14,
-    width: "92%",
+    borderRadius: 12,
+    border: "none",
     fontSize: 16,
     background: "#374151",
     color: "white",
-    border: "none",
-    borderRadius: 12,
   },
 
-  btn: {
-    padding: 16,
+  primaryBtn: {
     marginTop: 20,
-    width: "90%",
-    background: "#22c55e",
+    padding: 16,
+    width: "100%",
+    borderRadius: 14,
     border: "none",
-    borderRadius: 12,
-    color: "black",
-    fontWeight: "bold",
     fontSize: 16,
+    fontWeight: "bold",
+    background: "#22c55e",
+    color: "black",
+  },
+
+  resetBtn: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    fontSize: 12,
+    padding: "6px 10px",
+    borderRadius: 8,
+    border: "none",
+    background: "#ef4444",
+    color: "white",
   },
 
   bar: {
-    width: "90%",
-    height: 18,
+    width: "100%",
+    height: 14,
     background: "#333",
-    margin: "10px auto",
     borderRadius: 10,
     overflow: "hidden",
+    margin: "10px 0",
   },
 
   hp: {
