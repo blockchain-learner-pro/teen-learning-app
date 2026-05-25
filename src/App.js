@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
    🎮 LITERACY QUESTION BANK
 ========================= */
 const questions = [
-  // === COMPREHENSION ===
   {
     stat: "comprehension",
     difficulty: "easy",
@@ -29,8 +28,6 @@ const questions = [
       { text: "She only draws trees", correct: false },
     ],
   },
-
-  // === COMPOSITION ===
   {
     stat: "composition",
     difficulty: "easy",
@@ -53,8 +50,6 @@ const questions = [
       { text: "After, dinner we went for a walk.", correct: false },
     ],
   },
-
-  // === VOCABULARY ===
   {
     stat: "vocabulary",
     difficulty: "easy",
@@ -77,8 +72,6 @@ const questions = [
       { text: "Colorful", correct: false },
     ],
   },
-
-  // === ANALYSIS ===
   {
     stat: "analysis",
     difficulty: "medium",
@@ -101,8 +94,6 @@ const questions = [
       { text: "Ethos (credibility appeal)", correct: false },
     ],
   },
-
-  // === EXPRESSION ===
   {
     stat: "expression",
     difficulty: "easy",
@@ -114,8 +105,6 @@ const questions = [
       { text: "The flower existed in the garden.", correct: false },
     ],
   },
-
-  // === STAMINA ===
   {
     stat: "stamina",
     difficulty: "easy",
@@ -126,6 +115,66 @@ const questions = [
       { text: "It is a famous quote", correct: false },
       { text: "It rhymes", correct: false },
     ],
+  },
+];
+
+/* =========================
+   🖋️ WRITING PROMPTS
+========================= */
+const writingPrompts = [
+  {
+    id: "forge-001",
+    tier: 1,
+    stat: "expression",
+    title: "The Magic Pet",
+    prompt: "You find a small animal that can talk. What does it say? Write 3 sentences.",
+    minWords: 15,
+    maxWords: 50,
+  },
+  {
+    id: "forge-002",
+    tier: 1,
+    stat: "composition",
+    title: "Fix the Mess",
+    prompt: "Rewrite this boring sentence to make it exciting: 'The dog ran.'",
+    minWords: 10,
+    maxWords: 40,
+  },
+  {
+    id: "forge-003",
+    tier: 2,
+    stat: "expression",
+    title: "The Last Library",
+    prompt: "In a world where books are illegal, you discover the last library hidden underground. Describe what you see using all five senses.",
+    minWords: 80,
+    maxWords: 200,
+  },
+  {
+    id: "forge-004",
+    tier: 2,
+    stat: "composition",
+    title: "Sentence Surgery",
+    prompt: "Combine these three choppy sentences into one beautiful complex sentence: 'The storm came. The lights went out. We huddled together.'",
+    minWords: 20,
+    maxWords: 100,
+  },
+  {
+    id: "forge-005",
+    tier: 3,
+    stat: "expression",
+    title: "The Unsent Letter",
+    prompt: "Write a letter you will never send. It can be to a person, a place, a future version of yourself, or even an emotion. Make it raw and honest.",
+    minWords: 150,
+    maxWords: 400,
+  },
+  {
+    id: "forge-006",
+    tier: 3,
+    stat: "composition",
+    title: "Rhetorical Remix",
+    prompt: "Take a famous slogan or quote and rewrite it using a different rhetorical appeal (ethos, pathos, or logos). Explain your choice in 2-3 sentences.",
+    minWords: 100,
+    maxWords: 300,
   },
 ];
 
@@ -210,7 +259,14 @@ export default function App() {
   const [pool, setPool] = useState([]);
   const [current, setCurrent] = useState(null);
 
-  // RPG STATS
+  // Writing Forge States
+  const [library, setLibrary] = useState(saved?.library || []);
+  const [currentPrompt, setCurrentPrompt] = useState(null);
+  const [forgeContent, setForgeContent] = useState("");
+  const [forgeWordCount, setForgeWordCount] = useState(0);
+  const [lastXP, setLastXP] = useState(0);
+
+  // RPG Stats
   const [stats, setStats] = useState(
     saved?.stats || {
       comprehension: 0,
@@ -227,14 +283,14 @@ export default function App() {
   const [bestStreak, setBestStreak] = useState(saved?.bestStreak || 0);
   const [questionsAnswered, setQuestionsAnswered] = useState(saved?.questionsAnswered || 0);
 
-  // COMBAT
+  // Combat
   const [bossHP, setBossHP] = useState(saved?.bossHP || 100);
   const [playerHP, setPlayerHP] = useState(saved?.playerHP || 100);
 
-  // OFFLINE DETECTION
+  // Offline Detection
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
 
-  // DERIVED
+  // Derived
   const currentRank = getRank(totalXP);
   const totalLevel = Math.floor(totalXP / 50) + 1;
 
@@ -251,8 +307,9 @@ export default function App() {
       questionsAnswered,
       bossHP,
       playerHP,
+      library,
     });
-  }, [state, stats, totalXP, streak, bestStreak, questionsAnswered, bossHP, playerHP]);
+  }, [state, stats, totalXP, streak, bestStreak, questionsAnswered, bossHP, playerHP, library]);
 
   /* =========================
      📡 OFFLINE LISTENER
@@ -285,6 +342,10 @@ export default function App() {
     setQuestionsAnswered(0);
     setBossHP(100);
     setPlayerHP(100);
+    setLibrary([]);
+    setForgeContent("");
+    setForgeWordCount(0);
+    setLastXP(0);
   };
 
   /* =========================
@@ -383,6 +444,60 @@ export default function App() {
   };
 
   /* =========================
+     🖋️ FORGE FUNCTIONS
+  ========================= */
+  const enterForge = (prompt) => {
+    setCurrentPrompt(prompt);
+    setForgeContent("");
+    setForgeWordCount(0);
+    setState("forge");
+  };
+
+  const saveForgeDraft = () => {
+    playSound("correct.mp3");
+    console.log("Draft saved!");
+  };
+
+  const submitForge = () => {
+    const words = forgeContent.trim().split(/\s+/).filter((w) => w.length > 0);
+    const wordCount = words.length;
+
+    if (wordCount < currentPrompt.minWords) {
+      playSound("wrong.mp3");
+      alert(`Minimum ${currentPrompt.minWords} words required! You have ${wordCount}.`);
+      return;
+    }
+
+    const baseXP = 25;
+    const wordBonus = Math.min(wordCount, currentPrompt.maxWords) / 10;
+    const tierMultiplier = currentPrompt.tier;
+    const totalGained = Math.floor((baseXP + wordBonus) * tierMultiplier);
+
+    setStats((prev) => ({
+      ...prev,
+      expression: prev.expression + Math.floor(totalGained * 0.6),
+      composition: prev.composition + Math.floor(totalGained * 0.4),
+    }));
+
+    setTotalXP((p) => p + totalGained);
+    setLastXP(totalGained);
+
+    const newStory = {
+      id: Date.now(),
+      promptId: currentPrompt.id,
+      title: currentPrompt.title,
+      content: forgeContent,
+      wordCount,
+      date: new Date().toLocaleDateString(),
+      xpEarned: totalGained,
+    };
+
+    setLibrary((prev) => [newStory, ...prev]);
+    playSound("win.mp3");
+    setState("forge-review");
+  };
+
+  /* =========================
      🎨 UI
   ========================= */
   return (
@@ -459,7 +574,25 @@ export default function App() {
           </div>
 
           <button style={styles.primaryBtn} onClick={startGame}>
-            START QUEST
+            ⚔️ START QUEST
+          </button>
+
+          <button
+            style={{
+              ...styles.primaryBtn,
+              background: "#a855f7",
+              marginTop: 10,
+            }}
+            onClick={() => setState("forge-select")}
+          >
+            🖋️ ENTER THE FORGE
+          </button>
+
+          <button
+            style={{ ...styles.secondaryBtn, marginTop: 10, maxWidth: 400 }}
+            onClick={() => setState("library")}
+          >
+            📚 YOUR SPELLBOOK
           </button>
 
           <div style={{ marginTop: 10, fontSize: 12, opacity: 0.5 }}>
@@ -560,6 +693,229 @@ export default function App() {
 
           <button style={styles.primaryBtn} onClick={restart}>
             {state === "win" ? "NEXT QUEST" : "TRY AGAIN"}
+          </button>
+        </div>
+      )}
+
+      {/* =========================
+          🖋️ FORGE SCREENS
+      ========================= */}
+
+      {/* FORGE: Prompt Selection */}
+      {state === "forge-select" && (
+        <div style={styles.center}>
+          <h2 style={{ fontSize: "clamp(22px, 5vw, 28px)", marginBottom: 6 }}>
+            🖋️ The Writing Forge
+          </h2>
+          <p style={{ opacity: 0.7, marginBottom: 20, fontSize: 14 }}>
+            Choose a quest scroll to begin
+          </p>
+
+          <div style={{ maxWidth: 420, margin: "0 auto" }}>
+            {writingPrompts
+              .filter((p) => p.tier <= Math.max(1, Math.ceil(totalLevel / 20)))
+              .map((prompt) => (
+                <div
+                  key={prompt.id}
+                  style={styles.forgeCard}
+                  onClick={() => enterForge(prompt)}
+                >
+                  <div style={{ fontSize: 16, fontWeight: "bold" }}>
+                    {prompt.title}
+                  </div>
+                  <div style={{ fontSize: 12, color: "#9ca3af", marginTop: 4 }}>
+                    {prompt.stat === "expression" ? "🎭 Expression" : "✍️ Composition"}
+                    {" • "}
+                    {prompt.minWords}-{prompt.maxWords} words
+                    {" • "}
+                    Tier {prompt.tier}
+                  </div>
+                </div>
+              ))}
+          </div>
+
+          <button
+            style={{ ...styles.secondaryBtn, marginTop: 16, maxWidth: 400 }}
+            onClick={() => setState("menu")}
+          >
+            ← Back to Realm
+          </button>
+        </div>
+      )}
+
+      {/* FORGE: Writing Interface */}
+      {state === "forge" && currentPrompt && (
+        <div style={styles.center}>
+          <div style={styles.hud}>
+            <button
+              style={{ background: "transparent", border: "none", color: "white", fontSize: 14, cursor: "pointer" }}
+              onClick={() => setState("forge-select")}
+            >
+              ← Back
+            </button>
+            <div style={{ fontSize: 14, fontWeight: "bold" }}>🖋️ Forge</div>
+            <div style={{ fontSize: 14 }}>{forgeWordCount} words</div>
+          </div>
+
+          <div style={styles.forgeScroll}>
+            <h3 style={{ marginBottom: 8, fontSize: "clamp(16px, 4vw, 20px)" }}>
+              📜 {currentPrompt.title}
+            </h3>
+            <p
+              style={{
+                fontSize: "clamp(13px, 2.5vw, 15px)",
+                lineHeight: 1.5,
+                opacity: 0.9,
+                marginBottom: 16,
+              }}
+            >
+              {currentPrompt.prompt}
+            </p>
+
+            <div
+              style={{
+                fontSize: 12,
+                color: forgeWordCount < currentPrompt.minWords ? "#ef4444" : "#22c55e",
+                marginBottom: 12,
+                fontWeight: 600,
+              }}
+            >
+              {forgeWordCount < currentPrompt.minWords
+                ? `Minimum ${currentPrompt.minWords} words required`
+                : `✓ Word count met (${currentPrompt.minWords}-${currentPrompt.maxWords})`}
+            </div>
+
+            <textarea
+              style={styles.forgeInput}
+              placeholder="Begin your tale here, Wordkeeper..."
+              value={forgeContent}
+              onChange={(e) => {
+                const text = e.target.value;
+                setForgeContent(text);
+                const count = text.trim()
+                  ? text.trim().split(/\s+/).filter((w) => w.length > 0).length
+                  : 0;
+                setForgeWordCount(count);
+              }}
+              rows={10}
+            />
+
+            <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
+              <button
+                style={{ ...styles.secondaryBtn, flex: 1 }}
+                onClick={saveForgeDraft}
+              >
+                💾 Save Draft
+              </button>
+              <button
+                style={{
+                  ...styles.primaryBtn,
+                  flex: 1,
+                  background: "#a855f7",
+                  marginTop: 0,
+                }}
+                onClick={submitForge}
+              >
+                ⚡ Cast Spell
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* FORGE: Submission Success */}
+      {state === "forge-review" && (
+        <div style={styles.center}>
+          <div style={{ fontSize: 50, marginBottom: 10 }}>✨</div>
+          <h2 style={{ fontSize: "clamp(22px, 5vw, 28px)" }}>Spell Cast!</h2>
+          <p style={{ opacity: 0.8, marginBottom: 20 }}>
+            Your words have been bound to the realm.
+          </p>
+
+          <div
+            style={{
+              margin: "20px 0",
+              fontSize: 14,
+              background: "rgba(168, 85, 247, 0.1)",
+              padding: 16,
+              borderRadius: 12,
+              border: "1px solid rgba(168, 85, 247, 0.3)",
+            }}
+          >
+            <div style={{ fontSize: 20, fontWeight: "bold", color: "#a855f7" }}>
+              +{lastXP} XP
+            </div>
+            <div style={{ marginTop: 4, opacity: 0.8 }}>
+              🎭 Expression • ✍️ Composition
+            </div>
+          </div>
+
+          <button
+            style={{ ...styles.primaryBtn, background: "#a855f7" }}
+            onClick={() => setState("forge-select")}
+          >
+            Write Another
+          </button>
+          <button
+            style={{ ...styles.secondaryBtn, marginTop: 10 }}
+            onClick={() => setState("library")}
+          >
+            📚 View Spellbook
+          </button>
+          <button
+            style={{ ...styles.secondaryBtn, marginTop: 10 }}
+            onClick={() => setState("menu")}
+          >
+            Return to Realm
+          </button>
+        </div>
+      )}
+
+      {/* LIBRARY: Saved Stories */}
+      {state === "library" && (
+        <div style={styles.center}>
+          <h2 style={{ fontSize: "clamp(22px, 5vw, 28px)", marginBottom: 6 }}>
+            📚 Your Spellbook
+          </h2>
+          <p style={{ opacity: 0.7, marginBottom: 20, fontSize: 14 }}>
+            {library.length} {library.length === 1 ? "story" : "stories"} written
+          </p>
+
+          <div style={{ maxWidth: 600, margin: "0 auto", width: "100%" }}>
+            {library.length === 0 && (
+              <p style={{ opacity: 0.5, fontStyle: "italic" }}>
+                No stories yet. Visit the Writing Forge to begin.
+              </p>
+            )}
+
+            {library.map((story) => (
+              <div key={story.id} style={styles.storyCard}>
+                <div style={{ fontSize: 16, fontWeight: "bold", marginBottom: 4 }}>
+                  {story.title}
+                </div>
+                <div style={{ fontSize: 12, opacity: 0.6, marginBottom: 8 }}>
+                  {story.date} • {story.wordCount} words • +{story.xpEarned} XP
+                </div>
+                <p
+                  style={{
+                    fontSize: 14,
+                    lineHeight: 1.5,
+                    opacity: 0.85,
+                    fontStyle: "italic",
+                  }}
+                >
+                  "{story.content.substring(0, 120)}
+                  {story.content.length > 120 ? "..." : ""}"
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <button
+            style={{ ...styles.secondaryBtn, marginTop: 20, maxWidth: 400 }}
+            onClick={() => setState("menu")}
+          >
+            ← Return to Realm
           </button>
         </div>
       )}
@@ -833,5 +1189,69 @@ const styles = {
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
+  },
+
+  // Writing Forge Styles
+  forgeCard: {
+    background: "#1f2937",
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 10,
+    cursor: "pointer",
+    border: "1px solid transparent",
+    transition: "border-color 0.2s, transform 0.1s",
+    textAlign: "left",
+  },
+
+  forgeScroll: {
+    background: "#1f2937",
+    padding: "clamp(16px, 4vw, 24px)",
+    borderRadius: 18,
+    maxWidth: 600,
+    margin: "0 auto",
+    textAlign: "left",
+    border: "1px solid rgba(168, 85, 247, 0.3)",
+    width: "100%",
+    boxSizing: "border-box",
+  },
+
+  forgeInput: {
+    width: "100%",
+    minHeight: 180,
+    background: "#111827",
+    color: "white",
+    border: "1px solid #374151",
+    borderRadius: 12,
+    padding: 16,
+    fontSize: "clamp(14px, 3vw, 16px)",
+    lineHeight: 1.6,
+    fontFamily: "inherit",
+    resize: "vertical",
+    outline: "none",
+    boxSizing: "border-box",
+  },
+
+  storyCard: {
+    background: "#1f2937",
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 10,
+    textAlign: "left",
+    border: "1px solid #374151",
+  },
+
+  secondaryBtn: {
+    padding: "clamp(12px, 3vw, 14px)",
+    borderRadius: 12,
+    border: "1px solid #4b5563",
+    fontSize: "clamp(13px, 2.8vw, 15px)",
+    background: "transparent",
+    color: "white",
+    cursor: "pointer",
+    WebkitTapHighlightColor: "transparent",
+    touchAction: "manipulation",
+    minHeight: 44,
+    width: "100%",
+    maxWidth: 400,
   },
 };
