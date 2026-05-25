@@ -1,70 +1,49 @@
-# Getting Started with Create React App
+# ⚡ LevelUp: Literacy RPG
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+An RPG-style literacy learning game that grows with players from school age to college. Answer literacy questions, level up your character stats, defeat bosses, and unlock new regions of knowledge.
 
-## Available Scripts
+![LevelUp Screenshot](screenshot.png)
 
-In the project directory, you can run:
+## 🎮 Features
 
-### `npm start`
+- **6 Literacy Stats**: Comprehension, Composition, Vocabulary, Analysis, Expression, Stamina
+- **5 Character Ranks**: Novice Scribe → Apprentice Bard → Journeyman Scholar → Adept Wordsmith → Master Scholar
+- **6 Unlockable Regions**: Phonic Forest, Syntax Citadel, Vocabulary Valley, Analysis Peaks, Creative Spires, Stamina Plains
+- **Boss Battles**: Defeat the Syntax Golem after each quest
+- **Offline Mode**: Full functionality without internet — progress saves locally
+- **PWA Support**: Install on any device (phone, tablet, desktop)
+- **Responsive Design**: Works on all screen sizes
+- **Sound Effects**: Audio feedback for correct/wrong answers, boss fights, victories
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## 🚀 Live Demo
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+[![Netlify Status](https://api.netlify.com/api/v1/badges/YOUR-BADGE-ID/deploy-status)](https://your-app-name.netlify.app)
 
-### `npm test`
+[Play LevelUp Now](https://your-app-name.netlify.app)
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## 🛠️ Tech Stack
 
-### `npm run build`
+- **React 18** — UI framework
+- **CSS-in-JS** — Responsive styling with `clamp()`
+- **Service Worker** — Offline caching
+- **Web App Manifest** — PWA installability
+- **LocalStorage** — Progress persistence
+- **Netlify** — Hosting & deployment
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## 📦 Installation
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+```bash
+# Clone the repo
+git clone https://github.com/blockchain-learner-pro/teen-learning-app.git
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+# Navigate to project
+cd teen-learning-app
 
-### `npm run eject`
+# Install dependencies
+npm install
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+# Start development server
+npm start
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+# Build for production
+npm run build
