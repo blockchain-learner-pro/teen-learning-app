@@ -1,0 +1,5 @@
+<QuestionCard
+  current={current}
+  onAnswer={answer}
+  locked={locked}
+/>
