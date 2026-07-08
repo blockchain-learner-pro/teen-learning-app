@@ -1,0 +1,82 @@
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: #0b0f19;
+  min-height: 100vh;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+/* Shared background used on every screen so the whole app feels
+   like one cohesive game, not just a fancy splash bolted onto
+   plain white/default screens. */
+.app-background {
+  min-height: 100vh;
+  background: radial-gradient(circle at 50% 0%, #1e1b4b 0%, #0b0f19 60%);
+  color: #e5e7eb;
+}
+
+.screen-fade-in {
+  animation: screen-fade-in 0.5s ease-out;
+}
+
+@keyframes screen-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .screen-fade-in {
+    animation: none;
+  }
+}
+button {
+  min-height: 44px;
+  font-size: 16px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+textarea,
+input {
+  font-size: 16px; /* prevents iOS Safari from auto-zooming on focus */
+}
+
+.game-layout {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 24px;
+  padding: 20px;
+  flex-wrap: wrap;
+}
+
+.hud-column {
+  min-width: 220px;
+  flex: 1 1 220px;
+}
+
+/* Narrow screens (phones): stack HUD below the question,
+   full width, and trim the outer padding a bit. */
+@media (max-width: 560px) {
+  .game-layout {
+    padding: 12px;
+    gap: 16px;
+  }
+
+  .hud-column {
+    min-width: 100%;
+  }
+}
