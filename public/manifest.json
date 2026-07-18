@@ -1,0 +1,25 @@
+{
+  "short_name": "TeenBuilder",
+  "name": "TeenBuilder",
+  "description": "An RPG-style literacy learning game for all ages",
+  "icons": [
+    {
+      "src": "logo192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "logo512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#0b1020",
+  "background_color": "#111827",
+  "categories": ["education", "games"]
+}

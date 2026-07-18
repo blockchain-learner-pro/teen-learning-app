@@ -1,0 +1,53 @@
+{
+  "reading": [
+    {
+      "passage": "The old lighthouse keeper climbed the spiral stairs every evening, rain or shine, to light the lamp that guided ships safely past the rocks.",
+      "question": "What is the main idea?",
+      "correct": "The keeper reliably lit the lamp to keep ships safe.",
+      "wrong": [
+        "The keeper disliked climbing stairs.",
+        "Ships avoided the lighthouse on purpose.",
+        "The lamp was broken most nights."
+      ]
+    },
+    {
+      "passage": "Maria practiced the violin for an hour every day after school, even when she felt tired, because she had a recital coming up in June.",
+      "question": "Why did Maria keep practicing?",
+      "correct": "She had an upcoming recital to prepare for.",
+      "wrong": [
+        "She didn't enjoy playing the violin.",
+        "Her teacher forced her to practice.",
+        "She wanted to skip school."
+      ]
+    },
+    {
+      "passage": "After the storm knocked out power for three days, the neighbors set up a shared grill in the street so no one's food would go to waste.",
+      "question": "What does this passage mainly show?",
+      "correct": "People working together during a hard situation.",
+      "wrong": [
+        "A neighborhood argument over food.",
+        "A planned block party.",
+        "People ignoring the power outage."
+      ]
+    },
+    {
+      "passage": "Even though the trail was steep and the fog made it hard to see, the hikers kept moving, checking their map at every fork in the path.",
+      "question": "What best describes the hikers?",
+      "correct": "Careful and persistent despite difficult conditions.",
+      "wrong": [
+        "Lost and about to give up.",
+        "Unprepared for the hike.",
+        "Racing each other to the top."
+      ]
+    }
+  ],
+
+  "writing": [
+    "Write about your day.",
+    "Describe a place you'd love to visit and why.",
+    "Write about a time you learned something new.",
+    "If you could have any superpower, what would it be and why?",
+    "Describe your favorite hobby and what you enjoy about it.",
+    "Write about a challenge you overcame."
+  ]
+}
