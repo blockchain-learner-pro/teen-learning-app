@@ -1,32 +1,68 @@
 /* eslint-disable no-restricted-globals */
 
-// CRA / Workbox required precaching
-import { precacheAndRoute } from "workbox-precaching";
+const CACHE_NAME = "teenbuilder-v1";
+const STATIC_ASSETS = [
+  "/",
+  "/index.html",
+  "/manifest.json",
+  "/logo192.png",
+  "/logo512.png",
+  "/sounds/correct.mp3",
+  "/sounds/wrong.mp3",
+  "/sounds/boss.mp3",
+  "/sounds/win.mp3",
+];
 
-// This is injected at build time by CRA
-precacheAndRoute(self.__WB_MANIFEST);
-
-// --------------------------------------------------
-// Basic service worker lifecycle (safe defaults)
-// --------------------------------------------------
-
+// Install: Cache static shell
 self.addEventListener("install", (event) => {
-  // Activate new SW immediately
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(STATIC_ASSETS);
+    })
+  );
   self.skipWaiting();
 });
 
+// Activate: Clean old caches
 self.addEventListener("activate", (event) => {
-  // Take control of all clients immediately
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames
+          .filter((name) => name !== CACHE_NAME)
+          .map((name) => caches.delete(name))
+      );
+    })
+  );
+  self.clients.claim();
 });
 
-// --------------------------------------------------
-// Simple fetch strategy (safe fallback)
-// Network first → fallback to cache
-// --------------------------------------------------
-
+// Fetch: Network first, fallback to cache
 self.addEventListener("fetch", (event) => {
+  // Skip non-GET requests
+  if (event.request.method !== "GET") return;
+
   event.respondWith(
-    fetch(event.request).catch(() => caches.match(event.request))
+    fetch(event.request)
+      .then((response) => {
+        // Cache successful responses for offline
+        if (response.status === 200) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, clone);
+          });
+        }
+        return response;
+      })
+      .catch(() => {
+        return caches.match(event.request).then((cached) => {
+          if (cached) return cached;
+          // Offline fallback for navigation
+          if (event.request.mode === "navigate") {
+            return caches.match("/index.html");
+          }
+          return new Response("Offline - resource not cached", { status: 503 });
+        });
+      })
   );
 });

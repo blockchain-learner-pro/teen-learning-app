@@ -2,66 +2,30 @@
   publish = "build"
   command = "npm run build"
 
-# 1. SPA Routing (Keep this)
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+[[headers]]
+  for = "*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/service-worker.js"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+    Service-Worker-Allowed = "/"
+
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
-
-# 2. CRITICAL: Ensure sw.js is served as JS, not cached as HTML
-[[redirects]]
-  from = "/sw.js"
-  to = "/sw.js"
-  status = 200
-  force = true
-  headers = { Content-Type = "application/javascript" }
-
-# 3. CRITICAL: Ensure version.json is fetched fresh (no cache) for updates
-[[redirects]]
-  from = "/version.json"
-  to = "/version.json"
-  status = 200
-  force = true
-  headers = { "Cache-Control" = "no-cache, no-store, must-revalidate" }
-
-# 4. Existing Static Asset Caching (Good as is)
-[[headers]]
-  for = "/manifest.json"
-  [headers.values]
-    Content-Type = "application/manifest+json"
-
-[[headers]]
-  for = "/static/*"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
-
-[[headers]]
-  for = "/sounds/*"
-  [headers.values]
-    Cache-Control = "public, max-age=86400"
-
-[[headers]]
-  for = "/logo*.png"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
-
-# 5. NEW: Security Headers (CSP, HSTS, etc.)
-[[headers]]
-  for = "/*"
-  [headers.values]
-    # Enforce HTTPS for 1 year
-    Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
-    
-    # Prevent Clickjacking
-    X-Frame-Options = "DENY"
-    
-    # Prevent MIME Sniffing
-    X-Content-Type-Options = "nosniff"
-    
-    # XSS Protection (Legacy)
-    X-XSS-Protection = "1; mode=block"
-    
-    # Referrer Policy
-    Referrer-Policy = "strict-origin-when-cross-origin"
-    
-    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://teenbuilder.netlify.app/; worker-src 'self'; img-src 'self' data:; font-src 'self';"
