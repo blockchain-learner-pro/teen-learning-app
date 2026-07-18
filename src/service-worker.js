@@ -1,3 +1,4 @@
+self.__WB_MANIFEST = self.__WB_MANIFEST || [];
 /* eslint-disable no-restricted-globals */
 
 const CACHE_NAME = "teenbuilder-v1";
