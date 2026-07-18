@@ -1,49 +1,65 @@
-# ⚡ LevelUp: Literacy RPG
+# TeenBuilder
 
-An RPG-style literacy learning game that grows with players from school age to college. Answer literacy questions, level up your character stats, defeat bosses, and unlock new regions of knowledge.
+An interactive, gamified learning app for teenagers. Answer questions, earn XP, level up, and battle through challenges with your mascot companion!
 
-![LevelUp Screenshot](screenshot.png)
+## Features
 
-## 🎮 Features
+- **Quiz Gamplay** - Answer questions across topics to progress
+- **XP & Level System** - Earn experience points and level up as you learn
+- **Combat Challenges** - Battle through game stages with a combat engine
+- **Mascot Companion** - Get hints and encouragement from your in-game mascot
+- **Sound Effects** - Immersive audio feedback (correct, wrong, boss, completin, score up)
+- **Performance Tracking** - Monitor your learning progress over time
+- **Offline Ready** - Service worker enables offline play
+- **Question Management** - JSON-based questions, easy to add or modify
 
-- **6 Literacy Stats**: Comprehension, Composition, Vocabulary, Analysis, Expression, Stamina
-- **5 Character Ranks**: Novice Scribe → Apprentice Bard → Journeyman Scholar → Adept Wordsmith → Master Scholar
-- **6 Unlockable Regions**: Phonic Forest, Syntax Citadel, Vocabulary Valley, Analysis Peaks, Creative Spires, Stamina Plains
-- **Boss Battles**: Defeat the Syntax Golem after each quest
-- **Offline Mode**: Full functionality without internet — progress saves locally
-- **PWA Support**: Install on any device (phone, tablet, desktop)
-- **Responsive Design**: Works on all screen sizes
-- **Sound Effects**: Audio feedback for correct/wrong answers, boss fights, victories
+## Tech Stack
 
-## 🚀 Live Demo
+- React 19
+- JavaScript (ES6+)
+- CSS3
+- Netlify (deployment)
 
-[![Netlify Status](https://api.netlify.com/api/v1/badges/YOUR-BADGE-ID/deploy-status)](https://your-app-name.netlify.app)
-
-[Play LevelUp Now](https://your-app-name.netlify.app)
-
-## 🛠️ Tech Stack
-
-- **React 18** — UI framework
-- **CSS-in-JS** — Responsive styling with `clamp()`
-- **Service Worker** — Offline caching
-- **Web App Manifest** — PWA installability
-- **LocalStorage** — Progress persistence
-- **Netlify** — Hosting & deployment
-
-## 📦 Installation
+## Get Started
 
 ```bash
-# Clone the repo
-git clone https://github.com/blockchain-learner-pro/teen-learning-app.git
-
-# Navigate to project
-cd teen-learning-app
-
 # Install dependencies
 npm install
 
 # Start development server
 npm start
+Open http://localhost:3000 to view in browser
 
-# Build for production
+Adding Questions
+See public/HOW_TO_ADD_QUESTIONS.md for instructions on adding custom questions
+
+Building for Production
 npm run build
+
+Live Demo
+https://teenbuilder.netlify.app/
+
+License
+
+MIT License
+
+Copyright (c) 2026 blockchain-learner-pro
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
