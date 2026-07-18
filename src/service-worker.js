@@ -1,6 +1,7 @@
 /* eslint-disable no-restricted-globals */
 
-self.__WB_MANIFEST = self.__WB_MANIFEST || [];
+// Workbox will inject the precache manifest here
+self.__WB_MANIFEST;
 
 const CACHE_NAME = "teenbuilder-v1";
 const STATIC_ASSETS = [
@@ -17,6 +18,7 @@ const STATIC_ASSETS = [
   "/sounds/scoreup.mp3",
 ];
 
+// Install: Cache static shell
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
@@ -26,6 +28,7 @@ self.addEventListener("install", (event) => {
   self.skipWaiting();
 });
 
+// Activate: Clean old caches
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
@@ -39,8 +42,10 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
+// Fetch: Network first, fallback to cache
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
+
   event.respondWith(
     fetch(event.request)
       .then((response) => {
