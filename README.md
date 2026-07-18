@@ -37,7 +37,7 @@ Building for Production
 npm run build
 
 Live Demo
-https://teenbuilder.netlify.app/
+https://blockchain-learner-pro.github.io/teen-learning-app
 
 License
 
