@@ -1,9 +1,10 @@
+/* eslint-disable */
 /* eslint-disable no-restricted-globals */
 
 // Workbox will inject the precache manifest here
 self.__WB_MANIFEST;
 
-const CACHE_NAME = "teenbuilder-v1";
+const CACHE_NAME = "teenbuilder-v2";
 const STATIC_ASSETS = [
   "/",
   "/index.html",

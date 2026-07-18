@@ -232,9 +232,8 @@ export const generateQuestions = (stats, combo) => {
   const roll = Math.random();
 
   let type;
-  if (roll < 0.4) type = "math";
-  else if (roll < 0.8) type = "reading";
-  else type = "writing";
+  if (roll < 0.5) type = "math";
+  else type = "reading";
 
   const question =
     type === "math"

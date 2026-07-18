@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 
 import { loadGame, saveGame, saveBattleResult, getCollection, unlockBadge, loadProgress, saveProgress, resetAllProgress } from "../utils/storage";
 import { shuffle } from "../utils/gameMath";
@@ -9,7 +9,6 @@ import { recordPerformance, getPerformanceScore, recordLearning } from "../engin
 import { generateQuestions } from "../utils/questionGenerator";
 import { generateAllBadges, calculateBadgeReward, generateBadgeSVG, LEVEL_CONFIG } from "../utils/badges";
 
-import GameHUD from "../components/hud/GameHUD";
 import BadgeUnlockModal from "../components/game/BadgeUnlockModal";
 import LevelSelect from "../components/game/LevelSelect";
 import CollectionGallery from "../components/game/CollectionGallery";
@@ -19,6 +18,19 @@ import LoseScreen from "../components/game/LoseScreen";
 const LOOT_TABLE = ["Arcane Tome", "Training Ring", "Lucky Pencil", "Rune Shield", "Mystic Badge"];
 const BOSS_NAMES = ["Shadow Wizard", "Dark Knight", "Void Mage", "Chaos Sprite"];
 const BOSS_ICONS = ["🧙", "⚔️", "✨", "👹"];
+
+// Fallback question generator in case generateQuestions fails
+const createFallbackQuestion = () => ({
+  type: "math",
+  difficulty: 1,
+  stat: "comprehension",
+  question: `Solve: ${Math.floor(Math.random() * 9) + 1} + ${Math.floor(Math.random() * 9) + 1}`,
+  answers: [
+    { text: "4", correct: true },
+    { text: "3", correct: false },
+    { text: "5", correct: false }
+  ]
+});
 
 export default function App() {
   const saved = loadGame();
@@ -93,16 +105,35 @@ export default function App() {
     prevLevelRef.current = level;
   }, [level]);
 
-  const startGame = async (selectedLevel = 1) => {
-    const config = LEVEL_CONFIG[selectedLevel];
-    const generatedPool = Array.from({ length: config.questionsPerBattle }, () => generateQuestions(stats, combo));
-    const shuffled = shuffle(generatedPool);
+  const startGame = (level = 1) => {
+    const levelConfig = LEVEL_CONFIG[level];
+    const questionsPerBattle = levelConfig?.questionsPerBattle || 10;
 
+    // Pre-generate ALL questions at game start
+    let questions = [];
+    for (let i = 0; i < questionsPerBattle; i++) {
+      try {
+        const q = generateQuestions(stats, combo);
+        if (q && q.question && q.answers && q.answers.length > 0) {
+          questions.push(q);
+        } else {
+          console.warn(`Invalid question generated at index ${i}, using fallback`);
+          questions.push(createFallbackQuestion());
+        }
+      } catch (err) {
+        console.error(`Error generating question ${i}:`, err);
+        questions.push(createFallbackQuestion());
+      }
+    }
+
+    console.log(`Generated ${questions.length} questions for level ${level}`);
+
+    const shuffled = shuffle(questions);
     setPool(shuffled);
     setCurrent(shuffled[0]);
     setState("game");
-    setCurrentLevel(selectedLevel);
-    setBossHp(config.bossHp);
+    setCurrentLevel(level);
+    setBossHp(levelConfig?.bossHp || 1000);
     setPlayerHp(100);
     setLoot(null);
     setFeedback(null);
@@ -118,7 +149,7 @@ export default function App() {
     playMusic("battle.mp3");
   };
 
-  const handleWin = useCallback(async (finalScore, finalCombo, questionsAnswered, correctAnswers) => {
+  const handleWin = async (finalScore, finalCombo, questionsAnswered, correctAnswers) => {
     const battleResult = {
       level: currentLevel, won: true, score: finalScore, combo: finalCombo,
       questionsAnswered, correctAnswers, duration: Date.now() - battleStartTime,
@@ -128,10 +159,10 @@ export default function App() {
     const currentProgress = await loadProgress();
     const newProgress = {
       ...currentProgress,
-      totalWins: currentProgress.totalWins + 1,
-      totalQuestionsAnswered: currentProgress.totalQuestionsAnswered + questionsAnswered,
-      totalScore: currentProgress.totalScore + finalScore,
-      highestLevelUnlocked: Math.max(currentProgress.highestLevelUnlocked, currentLevel + 1),
+      totalWins: (currentProgress?.totalWins || 0) + 1,
+      totalQuestionsAnswered: (currentProgress?.totalQuestionsAnswered || 0) + questionsAnswered,
+      totalScore: (currentProgress?.totalScore || 0) + finalScore,
+      highestLevelUnlocked: Math.max(currentProgress?.highestLevelUnlocked || 1, currentLevel + 1),
     };
     await saveProgress(newProgress);
     setProgress(newProgress);
@@ -153,9 +184,9 @@ export default function App() {
     setPool([]);
     setScore(prev => prev + 50 + finalCombo * 10);
     setGems(prev => prev + 1);
-  }, [currentLevel, battleStartTime, allBadges]);
+  };
 
-  const handleLoss = useCallback(async (questionsAnswered, correctAnswers) => {
+  const handleLoss = async (questionsAnswered, correctAnswers) => {
     const battleResult = {
       level: currentLevel, won: false, score: 0, combo: combo,
       questionsAnswered, correctAnswers, duration: Date.now() - battleStartTime,
@@ -165,8 +196,8 @@ export default function App() {
     const currentProgress = await loadProgress();
     const newProgress = {
       ...currentProgress,
-      totalLosses: currentProgress.totalLosses + 1,
-      totalQuestionsAnswered: currentProgress.totalQuestionsAnswered + questionsAnswered,
+      totalLosses: (currentProgress?.totalLosses || 0) + 1,
+      totalQuestionsAnswered: (currentProgress?.totalQuestionsAnswered || 0) + questionsAnswered,
     };
     await saveProgress(newProgress);
     setProgress(newProgress);
@@ -174,7 +205,7 @@ export default function App() {
     setState("lose");
     setCurrent(null);
     setPool([]);
-  }, [currentLevel, combo, battleStartTime]);
+  };
 
   const answer = (correct) => {
     if (locked) return;
@@ -220,16 +251,17 @@ export default function App() {
       return next;
     });
 
-    const nextPool = pool.slice(1);
-    if (nextPool.length > 0) {
-      setPool(nextPool);
-      setCurrent(nextPool[0]);
-      setQuestionIndex(prev => prev + 1);
+    // Move to next question from pre-generated pool
+    const nextIndex = questionIndex + 1;
+    if (nextIndex < pool.length) {
+      setCurrent(pool[nextIndex]);
+      setQuestionIndex(nextIndex);
     } else {
-      const replenished = shuffle(Array.from({ length: 4 }, () => generateQuestions(stats, combo)));
-      setPool(replenished);
-      setCurrent(replenished[0]);
-      setQuestionIndex(prev => prev + 1);
+      // All questions answered - should have been caught by win/lose
+      console.log("All questions answered, checking win condition...");
+      if (bossHp > 0) {
+        setTimeout(() => handleWin(50 + combo * 10, combo, nextIndex, correctCount + 1), 500);
+      }
     }
 
     setTimeout(() => { setSlowMotion(false); setFeedback(null); setLocked(false); setCombatText(null); setFeedbackMsg(""); }, 500);
@@ -266,16 +298,139 @@ export default function App() {
     }
   };
 
+  // Responsive layout detection
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+  const isMobile = windowWidth <= 1024;
+
+  const appShellStyle = {
+    fontFamily: "Arial",
+    background: "radial-gradient(ellipse at top left, #1e3a5f 0%, #0b1020 50%, #030712 100%)",
+    minHeight: "100vh",
+    color: "white",
+    display: "flex",
+    flexDirection: isMobile ? "column" : "row",
+    alignItems: "stretch",
+    height: isMobile ? "auto" : "100vh",
+    overflow: isMobile ? "auto" : "hidden",
+    transition: "transform 0.25s ease, filter 0.15s ease",
+    position: "relative",
+  };
+
+  const leftPanelStyle = {
+    width: isMobile ? "100%" : "200px",
+    background: "linear-gradient(180deg, #111827 0%, #0f172a 100%)",
+    borderRight: isMobile ? "none" : "1px solid rgba(255,255,255,0.08)",
+    borderBottom: isMobile ? "1px solid rgba(255,255,255,0.08)" : "none",
+    padding: "16px 12px",
+    overflowY: "auto",
+    order: isMobile ? 2 : 0,
+    flexShrink: 0,
+  };
+
+  const centerPanelStyle = {
+    flex: 1,
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: isMobile ? "10px" : "20px",
+    position: "relative",
+    minWidth: 0,
+    order: isMobile ? 0 : 1,
+    flexDirection: "column",
+  };
+
+  const rightPanelStyle = {
+    width: isMobile ? "100%" : "280px",
+    background: "linear-gradient(180deg, #1e1b4b 0%, #0f172a 100%)",
+    borderLeft: isMobile ? "none" : "2px solid #dc2626",
+    borderTop: isMobile ? "2px solid #dc2626" : "none",
+    borderRadius: isMobile ? 0 : "16px 0 0 16px",
+    padding: "20px",
+    overflowY: "auto",
+    display: "flex",
+    flexDirection: "column",
+    gap: 12,
+    order: isMobile ? 1 : 2,
+    flexShrink: 0,
+  };
+
+  const questionCardStyle = {
+    background: "linear-gradient(145deg, #1f2937 0%, #111827 100%)",
+    padding: isMobile ? 16 : 24,
+    borderRadius: 24,
+    width: "100%",
+    maxWidth: isMobile ? "100%" : 500,
+    boxShadow: "0 24px 50px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1)",
+    margin: "0 auto",
+  };
+
+  const questionHeaderStyle = {
+    position: isMobile ? "relative" : "absolute",
+    top: isMobile ? "auto" : 20,
+    left: isMobile ? "auto" : 220,
+    right: isMobile ? "auto" : 300,
+    textAlign: "center",
+    fontSize: 12,
+    textTransform: "uppercase",
+    letterSpacing: 1,
+    color: "#cbd5e1",
+    marginBottom: isMobile ? 12 : 0,
+    width: isMobile ? "100%" : "auto",
+  };
+
+  const feedbackMsgStyle = {
+    position: isMobile ? "relative" : "absolute",
+    bottom: isMobile ? "auto" : 20,
+    left: isMobile ? "auto" : 220,
+    right: isMobile ? "auto" : 300,
+    textAlign: "center",
+    fontSize: 12,
+    color: "#a3e635",
+    marginTop: isMobile ? 12 : 0,
+    width: isMobile ? "100%" : "auto",
+  };
+
   return (
-    <div style={{...styles.appShell, transform: shake ? "translateX(-4px)" : "translateX(0)", filter: slowMotion ? "saturate(1.15)" : "none"}}>
+    <div style={{...appShellStyle, transform: shake ? "translateX(-4px)" : "translateX(0)", filter: slowMotion ? "saturate(1.15)" : "none"}}>
       <style>{`
-        @keyframes cardIn { 0% { opacity: 0; transform: translateY(12px) scale(0.97); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
-        @keyframes cardShake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 50% { transform: translateX(6px); } 75% { transform: translateX(-3px); } }
-        @keyframes screenPulse { 0% { opacity: 0; transform: scale(0.95); } 50% { opacity: 1; transform: scale(1.04); } 100% { opacity: 0; transform: scale(1.1); } }
-        @keyframes levelUpPulse { 0% { opacity: 0; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.08); } 100% { opacity: 0; transform: scale(1.2); } }
-        @keyframes slideIn { 0% { opacity: 0; transform: translateX(-20px); } 100% { opacity: 1; transform: translateX(0); } }
-        @keyframes badgePop { 0% { opacity: 0; transform: scale(0.5) rotate(-10deg); } 60% { opacity: 1; transform: scale(1.1) rotate(2deg); } 100% { opacity: 1; transform: scale(1) rotate(0deg); } }
-        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        @keyframes cardIn { 
+          0% { opacity: 0; transform: translateY(12px) scale(0.97); } 
+          100% { opacity: 1; transform: translateY(0) scale(1); } 
+        }
+        @keyframes cardShake { 
+          0%, 100% { transform: translateX(0); } 
+          25% { transform: translateX(-6px); } 
+          50% { transform: translateX(6px); } 
+          75% { transform: translateX(-3px); } 
+        }
+        @keyframes screenPulse { 
+          0% { opacity: 0; transform: scale(0.95); } 
+          50% { opacity: 1; transform: scale(1.04); } 
+          100% { opacity: 0; transform: scale(1.1); } 
+        }
+        @keyframes levelUpPulse { 
+          0% { opacity: 0; transform: scale(0.8); } 
+          50% { opacity: 1; transform: scale(1.08); } 
+          100% { opacity: 0; transform: scale(1.2); } 
+        }
+        @keyframes slideIn { 
+          0% { opacity: 0; transform: translateX(-20px); } 
+          100% { opacity: 1; transform: translateX(0); } 
+        }
+        @keyframes badgePop { 
+          0% { opacity: 0; transform: scale(0.5) rotate(-10deg); } 
+          60% { opacity: 1; transform: scale(1.1) rotate(2deg); } 
+          100% { opacity: 1; transform: scale(1) rotate(0deg); } 
+        }
+        @keyframes float { 
+          0%, 100% { transform: translateY(0); } 
+          50% { transform: translateY(-10px); } 
+        }
       `}</style>
 
       {newBadge && <BadgeUnlockModal badge={newBadge} onClose={() => setNewBadge(null)} />}
@@ -307,7 +462,7 @@ export default function App() {
 
       {state !== "menu" && (
         <>
-          <aside style={styles.leftPanel}>
+          <aside style={leftPanelStyle}>
             <div style={styles.panelHeader}>PLAYER STATS</div>
             <div style={styles.playerCard}>
               <div style={styles.playerAvatar}>🧙</div>
@@ -336,23 +491,23 @@ export default function App() {
             <div style={styles.statRow}><span>📦 COLLECTION</span><strong>{collection.length}</strong></div>
           </aside>
 
-          <main style={styles.centerPanel}>
+          <main style={centerPanelStyle}>
             {state === "game" && current && (
               <>
                 {screenPulse && <div style={styles.levelUpAnim}>LEVEL UP!</div>}
                 {combatText && <div style={{...styles.combatText, color: combatText.type === "boss" ? "#fda4af" : "#fef3c7"}}>{combatText.text}</div>}
-                <div style={styles.questionHeader}>
+                <div style={questionHeaderStyle}>
                   QUESTION {questionIndex + 1}/{maxQuestions} — Level {currentLevel}: {LEVEL_CONFIG[currentLevel]?.name}
                   <div style={styles.questionProgress}><div style={{...styles.questionProgressFill, width: `${((questionIndex + 1) / maxQuestions) * 100}%`}} /></div>
                 </div>
-                <div style={{...styles.questionCard, animation: shake ? "cardShake 0.25s ease-out" : "cardIn 0.25s ease-out", border: feedback === "correct" ? "2px solid #22c55e" : feedback === "wrong" ? "2px solid #ef4444" : "1px solid rgba(255,255,255,0.1)"}}>
+                <div style={{...questionCardStyle, animation: shake ? "cardShake 0.25s ease-out" : "cardIn 0.25s ease-out", border: feedback === "correct" ? "2px solid #22c55e" : feedback === "wrong" ? "2px solid #ef4444" : "1px solid rgba(255,255,255,0.1)"}}>
                   {combo > 1 && <div style={styles.comboTag}>🔥 COMBO x{combo}</div>}
-                  <h2 style={styles.question}>{current.question}</h2>
+                  <h2 style={{...styles.question, fontSize: isMobile ? 20 : 28}}>{current.question}</h2>
                   {current.answers?.map((a, i) => (
-                    <button key={i} style={{...styles.answerBtn, ...(feedback === "correct" && a.correct ? {background: "#22c55e", borderColor: "#16a34a"} : feedback === "wrong" && !a.correct ? {background: "#7f1d1d", borderColor: "#dc2626"} : {})}} onClick={() => answer(a.correct)} disabled={locked}>{a.text}</button>
+                    <button key={i} style={{...styles.answerBtn, padding: isMobile ? "16px" : "12px", fontSize: isMobile ? 16 : 14}} onClick={() => answer(a.correct)} disabled={locked}>{a.text}</button>
                   ))}
                 </div>
-                {feedbackMsg && <div style={styles.feedbackMsg}>{feedbackMsg}</div>}
+                {feedbackMsg && <div style={feedbackMsgStyle}>{feedbackMsg}</div>}
               </>
             )}
 
@@ -366,9 +521,9 @@ export default function App() {
           </main>
 
           {state === "game" && (
-            <aside style={styles.rightPanel}>
+            <aside style={rightPanelStyle}>
               <div style={styles.bossHeader}>⚔️ BOSS FIGHT</div>
-              <div style={styles.bossPortraitBox}><div style={styles.bossPortrait}>{bossIcon}</div></div>
+              <div style={styles.bossPortraitBox}><div style={{...styles.bossPortrait, fontSize: isMobile ? 48 : 56}}>{bossIcon}</div></div>
               <div style={styles.bossTitle}>{bossName}</div>
               <div style={styles.bossLevel}>LVL {bossLevel}</div>
               <div style={styles.hpLabel}>❤️ HP</div>
@@ -397,7 +552,6 @@ export default function App() {
 }
 
 const styles = {
-  appShell: { fontFamily: "Arial", background: "radial-gradient(ellipse at top left, #1e3a5f 0%, #0b1020 50%, #030712 100%)", minHeight: "100vh", color: "white", display: "flex", alignItems: "stretch", height: "100vh", overflow: "hidden", transition: "transform 0.25s ease, filter 0.15s ease", position: "relative" },
   center: { width: "100%", textAlign: "center", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", padding: "20px", overflowY: "auto", maxHeight: "100vh" },
   subtitle: { color: "#cbd5e1", marginTop: 8, marginBottom: 16 },
   button: { padding: "16px 32px", borderRadius: 12, background: "linear-gradient(90deg, #22c55e 0%, #16a34a 100%)", border: "none", fontWeight: "bold", color: "white", cursor: "pointer", boxShadow: "0 10px 30px rgba(34,197,94,0.3)", fontSize: 18, minWidth: 200 },
@@ -405,11 +559,7 @@ const styles = {
   tertiaryButton: { background: "linear-gradient(90deg, #475569 0%, #334155 100%)", boxShadow: "0 10px 30px rgba(71,85,105,0.3)", fontSize: 14, padding: "12px 24px" },
   progressSummary: { display: "flex", gap: 16, marginBottom: 24, flexWrap: "wrap", justifyContent: "center" },
   progressStat: { background: "rgba(31,41,55,0.85)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, padding: "8px 16px", fontSize: 14, color: "#fbbf24", fontWeight: "bold" },
-  leftPanel: { width: "200px", background: "linear-gradient(180deg, #111827 0%, #0f172a 100%)", borderRight: "1px solid rgba(255,255,255,0.08)", padding: "16px 12px", overflowY: "auto" },
-  centerPanel: { flex: 1, display: "flex", justifyContent: "center", alignItems: "center", padding: "20px", position: "relative" },
-  rightPanel: { width: "280px", background: "linear-gradient(180deg, #1e1b4b 0%, #0f172a 100%)", borderLeft: "2px solid #dc2626", borderRadius: "16px 0 0 16px", padding: "20px", overflowY: "auto", display: "flex", flexDirection: "column", gap: 12 },
   panelHeader: { fontSize: 11, textTransform: "uppercase", letterSpacing: 1.5, color: "#94a3b8", marginBottom: 12 },
-  bossHeader: { fontSize: 16, fontWeight: "bold", color: "#fca5a5", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 },
   playerCard: { display: "flex", gap: 8, marginBottom: 12 },
   playerAvatar: { fontSize: 32 },
   playerName: { fontWeight: "bold", color: "#f8fafc" },
@@ -423,14 +573,12 @@ const styles = {
   xpText: { fontSize: 11, color: "#cbd5e1" },
   statRow: { display: "flex", justifyContent: "space-between", padding: "6px 0", fontSize: 12, borderBottom: "1px solid rgba(255,255,255,0.04)" },
   resourcesLabel: { fontSize: 10, textTransform: "uppercase", letterSpacing: 1.2, color: "#94a3b8", marginTop: 12, marginBottom: 8 },
-  questionHeader: { position: "absolute", top: 20, left: 220, right: 300, textAlign: "center", fontSize: 12, textTransform: "uppercase", letterSpacing: 1, color: "#cbd5e1" },
   questionProgress: { height: 3, background: "rgba(255,255,255,0.1)", borderRadius: 999, marginTop: 6, overflow: "hidden" },
   questionProgressFill: { height: "100%", background: "linear-gradient(90deg, #22c55e, #38bdf8)", transition: "width 0.3s ease" },
-  questionCard: { background: "linear-gradient(145deg, #1f2937 0%, #111827 100%)", padding: 24, borderRadius: 24, width: "100%", maxWidth: 500, boxShadow: "0 24px 50px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1)" },
   comboTag: { color: "#fbbf24", marginBottom: 12, fontWeight: "bold", textAlign: "center" },
   question: { fontSize: 28, marginBottom: 20, color: "#f8fafc" },
   answerBtn: { display: "block", width: "100%", padding: "12px", marginBottom: 8, borderRadius: 12, background: "#475569", border: "1px solid rgba(255,255,255,0.1)", color: "white", cursor: "pointer", transition: "all 0.2s ease", textAlign: "left" },
-  feedbackMsg: { position: "absolute", bottom: 20, left: 220, right: 300, textAlign: "center", fontSize: 12, color: "#a3e635" },
+  bossHeader: { fontSize: 16, fontWeight: "bold", color: "#fca5a5", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 },
   bossPortraitBox: { background: "rgba(139, 92, 246, 0.1)", border: "2px solid #dc2626", borderRadius: 16, padding: 20, textAlign: "center" },
   bossPortrait: { fontSize: 56 },
   bossTitle: { fontSize: 18, fontWeight: "bold", color: "#f1f5f9" },
