@@ -19,18 +19,22 @@ const LOOT_TABLE = ["Arcane Tome", "Training Ring", "Lucky Pencil", "Rune Shield
 const BOSS_NAMES = ["Shadow Wizard", "Dark Knight", "Void Mage", "Chaos Sprite"];
 const BOSS_ICONS = ["🧙", "⚔️", "✨", "👹"];
 
-// Fallback question generator in case generateQuestions fails
-const createFallbackQuestion = () => ({
-  type: "math",
-  difficulty: 1,
-  stat: "comprehension",
-  question: `Solve: ${Math.floor(Math.random() * 9) + 1} + ${Math.floor(Math.random() * 9) + 1}`,
-  answers: [
-    { text: "4", correct: true },
-    { text: "3", correct: false },
-    { text: "5", correct: false }
-  ]
-});
+const createFallbackQuestion = () => {
+  const a = Math.floor(Math.random() * 9) + 1;
+  const b = Math.floor(Math.random() * 9) + 1;
+  const answer = a + b;
+  return {
+    type: "math",
+    difficulty: 1,
+    stat: "comprehension",
+    question: `Solve: ${a} + ${b}`,
+    answers: shuffle([
+      { text: `${answer}`, correct: true },
+      { text: `${answer + 1}`, correct: false },
+      { text: `${Math.max(0, answer - 1)}`, correct: false }
+    ])
+  };
+};
 
 export default function App() {
   const saved = loadGame();
@@ -109,7 +113,6 @@ export default function App() {
     const levelConfig = LEVEL_CONFIG[level];
     const questionsPerBattle = levelConfig?.questionsPerBattle || 10;
 
-    // Pre-generate ALL questions at game start
     let questions = [];
     for (let i = 0; i < questionsPerBattle; i++) {
       try {
@@ -117,16 +120,12 @@ export default function App() {
         if (q && q.question && q.answers && q.answers.length > 0) {
           questions.push(q);
         } else {
-          console.warn(`Invalid question generated at index ${i}, using fallback`);
           questions.push(createFallbackQuestion());
         }
       } catch (err) {
-        console.error(`Error generating question ${i}:`, err);
         questions.push(createFallbackQuestion());
       }
     }
-
-    console.log(`Generated ${questions.length} questions for level ${level}`);
 
     const shuffled = shuffle(questions);
     setPool(shuffled);
@@ -251,14 +250,11 @@ export default function App() {
       return next;
     });
 
-    // Move to next question from pre-generated pool
     const nextIndex = questionIndex + 1;
     if (nextIndex < pool.length) {
       setCurrent(pool[nextIndex]);
       setQuestionIndex(nextIndex);
     } else {
-      // All questions answered - should have been caught by win/lose
-      console.log("All questions answered, checking win condition...");
       if (bossHp > 0) {
         setTimeout(() => handleWin(50 + combo * 10, combo, nextIndex, correctCount + 1), 500);
       }
@@ -305,31 +301,41 @@ export default function App() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-  const isMobile = windowWidth <= 1024;
 
+  const isPhone = windowWidth <= 640;
+  const isTablet = windowWidth <= 1024;
+  const isDesktop = windowWidth > 1024;
+
+  // Phone-optimized layout styles
   const appShellStyle = {
-    fontFamily: "Arial",
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif",
     background: "radial-gradient(ellipse at top left, #1e3a5f 0%, #0b1020 50%, #030712 100%)",
     minHeight: "100vh",
+    minHeight: "-webkit-fill-available", // Fix for iOS viewport height
     color: "white",
     display: "flex",
-    flexDirection: isMobile ? "column" : "row",
+    flexDirection: isPhone ? "column" : "row",
     alignItems: "stretch",
-    height: isMobile ? "auto" : "100vh",
-    overflow: isMobile ? "auto" : "hidden",
+    height: isPhone ? "auto" : "100vh",
+    overflow: isPhone ? "auto" : "hidden",
     transition: "transform 0.25s ease, filter 0.15s ease",
     position: "relative",
+    paddingTop: isPhone ? "env(safe-area-inset-top)" : 0,
+    paddingBottom: isPhone ? "env(safe-area-inset-bottom)" : 0,
+    paddingLeft: isPhone ? "env(safe-area-inset-left)" : 0,
+    paddingRight: isPhone ? "env(safe-area-inset-right)" : 0,
   };
 
   const leftPanelStyle = {
-    width: isMobile ? "100%" : "200px",
+    width: isPhone ? "100%" : isTablet ? "180px" : "200px",
     background: "linear-gradient(180deg, #111827 0%, #0f172a 100%)",
-    borderRight: isMobile ? "none" : "1px solid rgba(255,255,255,0.08)",
-    borderBottom: isMobile ? "1px solid rgba(255,255,255,0.08)" : "none",
-    padding: "16px 12px",
+    borderRight: isPhone ? "none" : "1px solid rgba(255,255,255,0.08)",
+    borderBottom: isPhone ? "1px solid rgba(255,255,255,0.08)" : "none",
+    padding: isPhone ? "12px 16px" : "16px 12px",
     overflowY: "auto",
-    order: isMobile ? 2 : 0,
+    order: isPhone ? 2 : 0,
     flexShrink: 0,
+    display: isPhone ? "none" : "block", // Hide left panel on phone, show compact stats instead
   };
 
   const centerPanelStyle = {
@@ -337,62 +343,81 @@ export default function App() {
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    padding: isMobile ? "10px" : "20px",
+    padding: isPhone ? "12px" : isTablet ? "16px" : "20px",
     position: "relative",
     minWidth: 0,
-    order: isMobile ? 0 : 1,
+    order: isPhone ? 0 : 1,
     flexDirection: "column",
+    gap: isPhone ? 12 : 16,
   };
 
   const rightPanelStyle = {
-    width: isMobile ? "100%" : "280px",
+    width: isPhone ? "100%" : isTablet ? "260px" : "280px",
     background: "linear-gradient(180deg, #1e1b4b 0%, #0f172a 100%)",
-    borderLeft: isMobile ? "none" : "2px solid #dc2626",
-    borderTop: isMobile ? "2px solid #dc2626" : "none",
-    borderRadius: isMobile ? 0 : "16px 0 0 16px",
-    padding: "20px",
+    borderLeft: isPhone ? "none" : "2px solid #dc2626",
+    borderTop: isPhone ? "2px solid #dc2626" : "none",
+    borderRadius: isPhone ? 0 : "16px 0 0 16px",
+    padding: isPhone ? "16px" : "20px",
     overflowY: "auto",
     display: "flex",
     flexDirection: "column",
-    gap: 12,
-    order: isMobile ? 1 : 2,
+    gap: isPhone ? 8 : 12,
+    order: isPhone ? 1 : 2,
     flexShrink: 0,
   };
 
   const questionCardStyle = {
     background: "linear-gradient(145deg, #1f2937 0%, #111827 100%)",
-    padding: isMobile ? 16 : 24,
-    borderRadius: 24,
+    padding: isPhone ? 20 : 24,
+    borderRadius: isPhone ? 16 : 24,
     width: "100%",
-    maxWidth: isMobile ? "100%" : 500,
+    maxWidth: isPhone ? "100%" : 500,
     boxShadow: "0 24px 50px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1)",
     margin: "0 auto",
   };
 
   const questionHeaderStyle = {
-    position: isMobile ? "relative" : "absolute",
-    top: isMobile ? "auto" : 20,
-    left: isMobile ? "auto" : 220,
-    right: isMobile ? "auto" : 300,
     textAlign: "center",
-    fontSize: 12,
+    fontSize: isPhone ? 11 : 12,
     textTransform: "uppercase",
     letterSpacing: 1,
     color: "#cbd5e1",
-    marginBottom: isMobile ? 12 : 0,
-    width: isMobile ? "100%" : "auto",
+    marginBottom: 12,
+    width: "100%",
   };
 
   const feedbackMsgStyle = {
-    position: isMobile ? "relative" : "absolute",
-    bottom: isMobile ? "auto" : 20,
-    left: isMobile ? "auto" : 220,
-    right: isMobile ? "auto" : 300,
     textAlign: "center",
-    fontSize: 12,
+    fontSize: isPhone ? 14 : 12,
     color: "#a3e635",
-    marginTop: isMobile ? 12 : 0,
-    width: isMobile ? "100%" : "auto",
+    marginTop: 12,
+    width: "100%",
+    fontWeight: "bold",
+  };
+
+  // Phone compact stats bar (replaces left panel on phones)
+  const phoneStatsBarStyle = {
+    display: isPhone ? "flex" : "none",
+    gap: 8,
+    padding: "8px 12px",
+    background: "rgba(17,24,39,0.95)",
+    borderBottom: "1px solid rgba(255,255,255,0.08)",
+    overflowX: "auto",
+    WebkitOverflowScrolling: "touch",
+    position: "sticky",
+    top: 0,
+    zIndex: 10,
+  };
+
+  const phoneStatItemStyle = {
+    display: "flex",
+    alignItems: "center",
+    gap: 4,
+    fontSize: 12,
+    whiteSpace: "nowrap",
+    background: "rgba(31,41,55,0.7)",
+    borderRadius: 8,
+    padding: "4px 8px",
   };
 
   return (
@@ -431,24 +456,44 @@ export default function App() {
           0%, 100% { transform: translateY(0); } 
           50% { transform: translateY(-10px); } 
         }
+        /* Prevent elastic scrolling on iOS */
+        body {
+          overscroll-behavior-y: none;
+          -webkit-tap-highlight-color: transparent;
+        }
+        /* Prevent text selection on game elements */
+        button, .no-select {
+          -webkit-user-select: none;
+          user-select: none;
+          -webkit-touch-callout: none;
+        }
+        /* Smooth scrolling */
+        html {
+          scroll-behavior: smooth;
+        }
       `}</style>
+
+      <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes, viewport-fit=cover" />
+      <meta name="theme-color" content="#0b1020" />
+      <meta name="apple-mobile-web-app-capable" content="yes" />
+      <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 
       {newBadge && <BadgeUnlockModal badge={newBadge} onClose={() => setNewBadge(null)} />}
 
       {state === "menu" && subState === null && (
         <div style={styles.center}>
-          <h1>⚡ QUIZ BATTLE</h1>
-          <p style={styles.subtitle}>Train your brain and survive the boss gauntlet.</p>
+          <h1 style={{fontSize: isPhone ? 32 : 48}}>⚡ QUIZ BATTLE</h1>
+          <p style={{...styles.subtitle, fontSize: isPhone ? 16 : 18}}>Train your brain and survive the boss gauntlet.</p>
           {progress && (
             <div style={styles.progressSummary}>
-              <div style={styles.progressStat}>🏆 Level {progress.highestLevelUnlocked} Unlocked</div>
-              <div style={styles.progressStat}>✅ {progress.totalWins} Wins</div>
-              <div style={styles.progressStat}>📦 {collection.length}/30 Badges</div>
+              <div style={{...styles.progressStat, fontSize: isPhone ? 12 : 14}}>🏆 Level {progress.highestLevelUnlocked} Unlocked</div>
+              <div style={{...styles.progressStat, fontSize: isPhone ? 12 : 14}}>✅ {progress.totalWins} Wins</div>
+              <div style={{...styles.progressStat, fontSize: isPhone ? 12 : 14}}>📦 {collection.length}/30 Badges</div>
             </div>
           )}
-          <button style={{...styles.button, marginBottom: 12}} onClick={() => setSubState("levels")}>PLAY</button>
-          <button style={{...styles.button, ...styles.secondaryButton, marginBottom: 12}} onClick={() => setSubState("collection")}>🏆 COLLECTION</button>
-          <button style={{...styles.button, ...styles.tertiaryButton}} onClick={handleReset}>RESET PROGRESS</button>
+          <button style={{...styles.button, marginBottom: 12, padding: isPhone ? "18px 32px" : "16px 32px", fontSize: isPhone ? 20 : 18, minHeight: 48}} onClick={() => setSubState("levels")}>PLAY</button>
+          <button style={{...styles.button, ...styles.secondaryButton, marginBottom: 12, padding: isPhone ? "18px 32px" : "16px 32px", fontSize: isPhone ? 20 : 18, minHeight: 48}} onClick={() => setSubState("collection")}>🏆 COLLECTION</button>
+          <button style={{...styles.button, ...styles.tertiaryButton, padding: isPhone ? "14px 24px" : "12px 24px", fontSize: isPhone ? 16 : 14, minHeight: 44}} onClick={handleReset}>RESET PROGRESS</button>
         </div>
       )}
 
@@ -462,6 +507,16 @@ export default function App() {
 
       {state !== "menu" && (
         <>
+          {/* Phone compact stats bar */}
+          <div style={phoneStatsBarStyle}>
+            <div style={phoneStatItemStyle}>⚡ {energy}</div>
+            <div style={phoneStatItemStyle}>💰 {gold}</div>
+            <div style={phoneStatItemStyle}>💎 {gems}</div>
+            <div style={phoneStatItemStyle}>🏆 LVL {level}</div>
+            <div style={phoneStatItemStyle}>⭐ {combo}</div>
+            <div style={phoneStatItemStyle}>❤️ {playerHp}</div>
+          </div>
+
           <aside style={leftPanelStyle}>
             <div style={styles.panelHeader}>PLAYER STATS</div>
             <div style={styles.playerCard}>
@@ -501,10 +556,17 @@ export default function App() {
                   <div style={styles.questionProgress}><div style={{...styles.questionProgressFill, width: `${((questionIndex + 1) / maxQuestions) * 100}%`}} /></div>
                 </div>
                 <div style={{...questionCardStyle, animation: shake ? "cardShake 0.25s ease-out" : "cardIn 0.25s ease-out", border: feedback === "correct" ? "2px solid #22c55e" : feedback === "wrong" ? "2px solid #ef4444" : "1px solid rgba(255,255,255,0.1)"}}>
-                  {combo > 1 && <div style={styles.comboTag}>🔥 COMBO x{combo}</div>}
-                  <h2 style={{...styles.question, fontSize: isMobile ? 20 : 28}}>{current.question}</h2>
+                  {combo > 1 && <div style={{...styles.comboTag, fontSize: isPhone ? 16 : 14}}>🔥 COMBO x{combo}</div>}
+                  <h2 style={{...styles.question, fontSize: isPhone ? 22 : 28, lineHeight: 1.4}}>{current.question}</h2>
                   {current.answers?.map((a, i) => (
-                    <button key={i} style={{...styles.answerBtn, padding: isMobile ? "16px" : "12px", fontSize: isMobile ? 16 : 14}} onClick={() => answer(a.correct)} disabled={locked}>{a.text}</button>
+                    <button key={i} style={{
+                      ...styles.answerBtn, 
+                      padding: isPhone ? "18px 16px" : "14px 12px", 
+                      fontSize: isPhone ? 18 : 16,
+                      minHeight: isPhone ? 56 : 48,
+                      marginBottom: isPhone ? 12 : 8,
+                      background: feedback === "correct" && a.correct ? "#22c55e" : feedback === "wrong" && !a.correct ? "#7f1d1d" : "#475569"
+                    }} onClick={() => answer(a.correct)} disabled={locked}>{a.text}</button>
                   ))}
                 </div>
                 {feedbackMsg && <div style={feedbackMsgStyle}>{feedbackMsg}</div>}
@@ -522,9 +584,9 @@ export default function App() {
 
           {state === "game" && (
             <aside style={rightPanelStyle}>
-              <div style={styles.bossHeader}>⚔️ BOSS FIGHT</div>
-              <div style={styles.bossPortraitBox}><div style={{...styles.bossPortrait, fontSize: isMobile ? 48 : 56}}>{bossIcon}</div></div>
-              <div style={styles.bossTitle}>{bossName}</div>
+              <div style={{...styles.bossHeader, fontSize: isPhone ? 14 : 16}}>⚔️ BOSS FIGHT</div>
+              <div style={{...styles.bossPortraitBox, padding: isPhone ? 12 : 20}}><div style={{...styles.bossPortrait, fontSize: isPhone ? 40 : 56}}>{bossIcon}</div></div>
+              <div style={{...styles.bossTitle, fontSize: isPhone ? 16 : 18}}>{bossName}</div>
               <div style={styles.bossLevel}>LVL {bossLevel}</div>
               <div style={styles.hpLabel}>❤️ HP</div>
               <div style={styles.hpBar}><div style={{...styles.hpFill, width: `${(bossHp / maxBossHp) * 100}%`}} /></div>
@@ -532,15 +594,15 @@ export default function App() {
               <div style={styles.rewardsBox}>
                 <div style={styles.rewardsLabel}>REWARDS</div>
                 <div style={styles.rewardIcons}>
-                  <div style={styles.rewardItem}>⭐ 50 XP</div>
-                  <div style={styles.rewardItem}>💰 120</div>
-                  <div style={styles.rewardItem}>💎 1</div>
-                  <div style={styles.rewardItem}>🏆 Badge</div>
+                  <div style={{...styles.rewardItem, fontSize: isPhone ? 10 : 11}}>⭐ 50 XP</div>
+                  <div style={{...styles.rewardItem, fontSize: isPhone ? 10 : 11}}>💰 120</div>
+                  <div style={{...styles.rewardItem, fontSize: isPhone ? 10 : 11}}>💎 1</div>
+                  <div style={{...styles.rewardItem, fontSize: isPhone ? 10 : 11}}>🏆 Badge</div>
                 </div>
               </div>
-              <button style={styles.attackBtn} disabled={energy < 10}>⚔️ ATTACK!</button>
+              <button style={{...styles.attackBtn, padding: isPhone ? "14px" : "12px", fontSize: isPhone ? 16 : 14, minHeight: 48}} disabled={energy < 10}>⚔️ ATTACK!</button>
               <div style={styles.energyCost}>⚡ 10 ENERGY</div>
-              <div style={styles.phaseBox}>{bossPhase}</div>
+              <div style={{...styles.phaseBox, fontSize: isPhone ? 11 : 12}}>{bossPhase}</div>
             </aside>
           )}
         </>
@@ -554,7 +616,7 @@ export default function App() {
 const styles = {
   center: { width: "100%", textAlign: "center", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", padding: "20px", overflowY: "auto", maxHeight: "100vh" },
   subtitle: { color: "#cbd5e1", marginTop: 8, marginBottom: 16 },
-  button: { padding: "16px 32px", borderRadius: 12, background: "linear-gradient(90deg, #22c55e 0%, #16a34a 100%)", border: "none", fontWeight: "bold", color: "white", cursor: "pointer", boxShadow: "0 10px 30px rgba(34,197,94,0.3)", fontSize: 18, minWidth: 200 },
+  button: { padding: "16px 32px", borderRadius: 12, background: "linear-gradient(90deg, #22c55e 0%, #16a34a 100%)", border: "none", fontWeight: "bold", color: "white", cursor: "pointer", boxShadow: "0 10px 30px rgba(34,197,94,0.3)", fontSize: 18, minWidth: 200, touchAction: "manipulation" },
   secondaryButton: { background: "linear-gradient(90deg, #7c3aed 0%, #2563eb 100%)", boxShadow: "0 10px 30px rgba(124,58,237,0.3)" },
   tertiaryButton: { background: "linear-gradient(90deg, #475569 0%, #334155 100%)", boxShadow: "0 10px 30px rgba(71,85,105,0.3)", fontSize: 14, padding: "12px 24px" },
   progressSummary: { display: "flex", gap: 16, marginBottom: 24, flexWrap: "wrap", justifyContent: "center" },
@@ -576,8 +638,8 @@ const styles = {
   questionProgress: { height: 3, background: "rgba(255,255,255,0.1)", borderRadius: 999, marginTop: 6, overflow: "hidden" },
   questionProgressFill: { height: "100%", background: "linear-gradient(90deg, #22c55e, #38bdf8)", transition: "width 0.3s ease" },
   comboTag: { color: "#fbbf24", marginBottom: 12, fontWeight: "bold", textAlign: "center" },
-  question: { fontSize: 28, marginBottom: 20, color: "#f8fafc" },
-  answerBtn: { display: "block", width: "100%", padding: "12px", marginBottom: 8, borderRadius: 12, background: "#475569", border: "1px solid rgba(255,255,255,0.1)", color: "white", cursor: "pointer", transition: "all 0.2s ease", textAlign: "left" },
+  question: { fontSize: 28, marginBottom: 20, color: "#f8fafc", lineHeight: 1.3 },
+  answerBtn: { display: "block", width: "100%", padding: "14px 12px", marginBottom: 8, borderRadius: 12, background: "#475569", border: "1px solid rgba(255,255,255,0.1)", color: "white", cursor: "pointer", transition: "all 0.2s ease", textAlign: "left", fontSize: 16, minHeight: 48, touchAction: "manipulation" },
   bossHeader: { fontSize: 16, fontWeight: "bold", color: "#fca5a5", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 },
   bossPortraitBox: { background: "rgba(139, 92, 246, 0.1)", border: "2px solid #dc2626", borderRadius: 16, padding: 20, textAlign: "center" },
   bossPortrait: { fontSize: 56 },
@@ -591,7 +653,7 @@ const styles = {
   rewardsLabel: { fontSize: 10, textTransform: "uppercase", letterSpacing: 1, color: "#86efac", marginBottom: 6 },
   rewardIcons: { display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" },
   rewardItem: { fontSize: 11, color: "#bbf7d0" },
-  attackBtn: { padding: "12px", borderRadius: 12, background: "linear-gradient(90deg, #dc2626 0%, #991b1b 100%)", border: "2px solid #ef4444", fontWeight: "bold", color: "white", cursor: "pointer", textTransform: "uppercase", letterSpacing: 1, marginTop: 8 },
+  attackBtn: { padding: "12px", borderRadius: 12, background: "linear-gradient(90deg, #dc2626 0%, #991b1b 100%)", border: "2px solid #ef4444", fontWeight: "bold", color: "white", cursor: "pointer", textTransform: "uppercase", letterSpacing: 1, marginTop: 8, touchAction: "manipulation" },
   energyCost: { textAlign: "center", fontSize: 11, color: "#cbd5e1" },
   phaseBox: { background: "#7c3aed", borderRadius: 8, padding: "6px", textAlign: "center", fontSize: 12, fontWeight: "bold", marginTop: 8 },
   levelUpAnim: { position: "absolute", inset: 0, display: "flex", justifyContent: "center", alignItems: "center", fontSize: 48, fontWeight: "bold", color: "#fbbf24", animation: "levelUpPulse 0.8s ease-out", pointerEvents: "none" },
