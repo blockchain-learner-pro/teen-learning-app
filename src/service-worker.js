@@ -1,31 +1,14 @@
 /* eslint-disable */
 /* eslint-disable no-restricted-globals */
+/* eslint-disable no-unused-expressions */
 
 // Workbox will inject the precache manifest here
 self.__WB_MANIFEST;
 
-const CACHE_NAME = "teenbuilder-v2";
-const STATIC_ASSETS = [
-  "/",
-  "/index.html",
-  "/manifest.json",
-  "/logo192.png",
-  "/logo512.png",
-  "/sounds/correct.mp3",
-  "/sounds/wrong.mp3",
-  "/sounds/boss.mp3",
-  "/sounds/win.mp3",
-  "/sounds/lose.mp3",
-  "/sounds/scoreup.mp3",
-];
+const CACHE_NAME = "teenbuilder-v3";
 
-// Install: Cache static shell
+// Install: Skip waiting
 self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS);
-    })
-  );
   self.skipWaiting();
 });
 
@@ -43,13 +26,13 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
-// Fetch: Network first, fallback to cache
+// Fetch: Cache everything dynamically
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
 
   event.respondWith(
-    fetch(event.request)
-      .then((response) => {
+    caches.match(event.request).then((cached) => {
+      const fetchPromise = fetch(event.request).then((response) => {
         if (response.status === 200) {
           const clone = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
@@ -57,15 +40,9 @@ self.addEventListener("fetch", (event) => {
           });
         }
         return response;
-      })
-      .catch(() => {
-        return caches.match(event.request).then((cached) => {
-          if (cached) return cached;
-          if (event.request.mode === "navigate") {
-            return caches.match("/index.html");
-          }
-          return new Response("Offline - resource not cached", { status: 503 });
-        });
-      })
+      }).catch(() => cached);
+
+      return cached || fetchPromise;
+    })
   );
-});// deploy trigger 1784366918
+});

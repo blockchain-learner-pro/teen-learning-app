@@ -14,7 +14,7 @@ root.render(
 );
 
 // Register service worker for PWA + offline support
-serviceWorkerRegistration.unregister();
+serviceWorkerRegistration.register();
 
 // Measure Web Vitals for performance monitoring
 // These help track real user experience metrics (CLS, FCP, LCP)
